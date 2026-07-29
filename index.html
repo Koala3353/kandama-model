@@ -479,7 +479,9 @@ main figure, main .grid > *, main .overflow-x-auto{ min-width:0 }
           <thead><tr class="text-left" style="color:var(--muted)">
             <th class="py-1.5 pr-2 font-medium">Tier</th>
             <th class="py-1.5 px-2 font-medium text-right">Loom-days</th>
-            <th class="py-1.5 px-2 font-medium text-right">COGS</th>
+            <th class="py-1.5 px-2 font-medium text-right">Materials</th>
+            <th class="py-1.5 px-2 font-medium text-right">Weaver labour</th>
+            <th class="py-1.5 px-2 font-medium text-right">= COGS</th>
             <th class="py-1.5 px-2 font-medium text-right">Base price</th>
             <th class="py-1.5 px-2 font-medium text-right">Price <span id="mkEcho"></span></th>
             <th class="py-1.5 px-2 font-medium text-right">GP / unit</th>
@@ -886,12 +888,12 @@ main figure, main .grid > *, main .overflow-x-auto{ min-width:0 }
          style="background:var(--raised); border:1px solid var(--line)"></pre>
   </div>
   <div class="mt-3">
-    <div class="lbl">Inputs it depends on</div>
+    <div class="lbl">Inputs it depends on <span style="text-transform:none;letter-spacing:0">— measured by nudging each input, not hand-listed</span></div>
     <div id="tInputs" class="mt-1 space-y-1.5"></div>
     <button class="btn mt-2 w-full" id="tDep">Highlight everything these inputs touch</button>
   </div>
   <div class="mt-3">
-    <div class="lbl">What it feeds into</div>
+    <div class="lbl">Where to look next <span style="text-transform:none;letter-spacing:0">— a curated path, not an exhaustive list</span></div>
     <div id="tFeeds" class="mt-1 flex flex-wrap gap-1.5"></div>
   </div>
   <div class="h-10"></div>
@@ -922,7 +924,15 @@ const TIERS = [
 const DEFAULTS = {
   weavers:29, looms:18, loomDaysPerWeaver:110, weaverRate:650,
   ld_capsule:3,  ld_signature:16, ld_masterpiece:22,
-  cogs_capsule:6500, cogs_signature:18000, cogs_masterpiece:45000,
+  // COGS is NOT an independent input: weaver labour is the largest part of it.
+  // Materials & finishing is what remains once labour is taken out, derived from
+  // the stated totals at the base rate of ₱650 per loom-day:
+  //   Capsule      6,500 −  3×650 =  4,550
+  //   Signature   18,000 − 16×650 =  7,600
+  //   Masterpiece 45,000 − 22×650 = 30,700
+  // so total COGS = materials + loom-days × weaver rate, and raising weaver pay
+  // correctly costs margin instead of being free.
+  mat_capsule:4550, mat_signature:7600, mat_masterpiece:30700,
   base_capsule:15000, base_signature:48000, base_masterpiece:150000,
   markup:15,
   mel_capsule:220, mel_signature:36, mel_masterpiece:4,
@@ -948,7 +958,7 @@ const IN = [
    breaks:'The single most load-bearing estimate in the model. At 80 rather than 110 the ceiling drops to 2,320 loom-days and the plan does not fit.'},
   {k:'weaverRate', g:'Production capacity', label:'Weaver rate, ₱ per loom-day', min:400, max:1200, step:10, tag:'D',
    src:'CAR agri minimum ₱480, non-agri ₱505, poverty line ₱435',
-   breaks:'Drives weaver income and, through COGS, our margin claim. Raising it is the honest lever; it should visibly cost us.'},
+   breaks:'The most consequential decision on the page. It sets weaver income AND flows into COGS as loom-days × rate, so raising it visibly costs gross margin and operating profit — which is the real trade-off between paying weavers more and the return we promise. Nothing about it is free.'},
   // ---- pricing
   {k:'markup', g:'Product and pricing', label:'Markup on base price, %', min:0, max:40, step:1, tag:'D', unit:'%',
    src:'Team decision — Melbourne positioning',
@@ -1025,8 +1035,9 @@ TIERS.forEach(t=>{
   TIER_IN.push(
     {k:'ld_'+t.key, g:'Product and pricing', label:t.name+' — loom-days', min:1, max:60, step:1, tag:'E',
      src:'Team estimate', breaks:'If the '+t.name+' piece really takes longer, the edition shrinks. Gate 1 in October exists to count real loom hours before any edition is promised.'},
-    {k:'cogs_'+t.key, g:'Product and pricing', label:t.name+' — COGS ₱', min:0, max:200000, step:500, tag:'E',
-     src:'Team estimate', breaks:'Gross margin moves directly, and with it the whole profit claim.'},
+    {k:'mat_'+t.key, g:'Product and pricing', label:t.name+' — materials & finishing ₱', min:0, max:200000, step:50, tag:'E',
+     src:'Team estimate — the non-labour part of COGS, derived from the stated total at ₱650 per loom-day',
+     breaks:'Gross margin moves directly, and with it the whole profit claim. This is the part of cost that is NOT weaver pay; weaver pay is computed from loom-days × the weaver rate so that raising pay visibly costs margin.'},
     {k:'base_'+t.key, g:'Product and pricing', label:t.name+' — base price ₱ (pre-markup)', min:0, max:400000, step:500, tag:'D',
      src:'Published pre-markup pricing', breaks:'Every revenue figure scales off this. The markup slider multiplies it.'}
   );
@@ -1114,7 +1125,16 @@ function fmt(v, type){
 function compute(s){
   const m = {};
   const ld   = { capsule:s.ld_capsule, signature:s.ld_signature, masterpiece:s.ld_masterpiece };
-  const cogs = { capsule:s.cogs_capsule, signature:s.cogs_signature, masterpiece:s.cogs_masterpiece };
+  // Cost of goods is built, not assumed: weaver labour is loom-days × the weaver
+  // rate, so a change to weaver pay flows into COGS, gross margin, operating
+  // profit, the five-year view and the simulations — as it must in a business
+  // where hand-weaving is the dominant input cost.
+  const mat = { capsule:s.mat_capsule, signature:s.mat_signature, masterpiece:s.mat_masterpiece };
+  const labourUnit = {}, cogs = {};
+  TIERS.forEach(t => {
+    labourUnit[t.key] = s['ld_'+t.key] * s.weaverRate;
+    cogs[t.key] = mat[t.key] + labourUnit[t.key];
+  });
   const base = { capsule:s.base_capsule, signature:s.base_signature, masterpiece:s.base_masterpiece };
   // Prices are rounded to the nearest ₱50 for a clean sticker price, exactly as
   // the derivation doc states. At 15% the rounding is a no-op (17,250 / 55,200 /
@@ -1123,6 +1143,7 @@ function compute(s){
   const price = {};
   TIERS.forEach(t => price[t.key] = Math.round(base[t.key] * (1 + s.markup/100) / 50) * 50);
   m.ld = ld; m.cogs = cogs; m.base = base; m.price = price;
+  m.mat = mat; m.labourUnit = labourUnit;
 
   // 3.1 capacity ceiling
   m.ceiling = s.weavers * s.loomDaysPerWeaver;
@@ -1372,8 +1393,13 @@ function twoWayGrid(){
    robustness illustration — how much the answer moves when the fragile estimates
    move together — and explicitly NOT a probability of commercial success.
    The RNG is seeded, so the same inputs always give the same result. */
-const MC_INPUTS = ['loomDaysPerWeaver','ld_capsule','ld_signature','ld_masterpiece',
-                   'cogs_capsule','cogs_signature','cogs_masterpiece',
+/* Only ESTIMATE-tagged inputs are simulated. The weaver rate is deliberately NOT
+   here: it is a decision we make, not an uncertainty we are exposed to, so
+   sampling it would dress a choice up as a risk. Note that loom-days now move
+   COGS as well as capacity, so labour cost varies through them regardless. */
+const MC_INPUTS = ['loomDaysPerWeaver',
+                   'ld_capsule','ld_signature','ld_masterpiece',
+                   'mat_capsule','mat_signature','mat_masterpiece',
                    'mel_capsule','mel_signature','mel_masterpiece'];
 function lcg(seed){ let s = seed >>> 0; return ()=> (s = (s*1664525 + 1013904223) >>> 0) / 4294967296; }
 function triangular(rand, lo, mode, hi){
@@ -1455,21 +1481,21 @@ function traceDefs(s, m){
     title:'Melbourne COGS', type:'peso', v:m.melCOGS,
     f:'melCOGS = Σ (units[tier] × COGS[tier])',
     sub:TIERS.map(t=>`${G(m.melU[t.key])}×${G(m.cogs[t.key])}`).join(' + ') + ' = ₱' + G(m.melCOGS),
-    deps:['mel_capsule','mel_signature','mel_masterpiece','cogs_capsule','cogs_signature','cogs_masterpiece'],
+    deps:['mel_capsule','mel_signature','mel_masterpiece','mat_capsule','mat_signature','mat_masterpiece','weaverRate','ld_capsule','ld_signature','ld_masterpiece'],
     feeds:['melGP','melGM']
   });
   add('melGP', {
     title:'Melbourne gross profit', type:'peso', v:m.melGP,
     f:'melGP = melRevenue − melCOGS',
     sub:`₱${G(m.melRevenue)} − ₱${G(m.melCOGS)} = ₱${G(m.melGP)}`,
-    deps:['mel_capsule','mel_signature','mel_masterpiece','base_capsule','base_signature','base_masterpiece','markup','cogs_capsule','cogs_signature','cogs_masterpiece'],
+    deps:['mel_capsule','mel_signature','mel_masterpiece','base_capsule','base_signature','base_masterpiece','markup','mat_capsule','mat_signature','mat_masterpiece','weaverRate','ld_capsule','ld_signature','ld_masterpiece'],
     feeds:['melGM','opProfit','gpUnit','ratio','breakeven']
   });
   add('melGM', {
     title:'Melbourne gross margin', type:'pct', v:m.melGM,
     f:'melGM = melGP ÷ melRevenue',
     sub:`₱${G(m.melGP)} ÷ ₱${G(m.melRevenue)} = ${pct(m.melGM)}`,
-    deps:['markup','cogs_capsule','cogs_signature','cogs_masterpiece','base_capsule','base_signature','base_masterpiece'],
+    deps:['markup','mat_capsule','mat_signature','mat_masterpiece','weaverRate','ld_capsule','ld_signature','ld_masterpiece','base_capsule','base_signature','base_masterpiece'],
     feeds:['opProfit']
   });
   add('blended', {
@@ -1514,7 +1540,7 @@ function traceDefs(s, m){
     title:'Domestic COGS', type:'peso', v:m.phCOGS,
     f:'phCOGS = Σ (units[tier] × COGS[tier])',
     sub:TIERS.map(t=>`${G(m.phU[t.key])}×${G(m.cogs[t.key])}`).join(' + ') + ' = ₱' + G(m.phCOGS),
-    deps:['phAlloc','mix_capsule','mix_signature','mix_masterpiece','cogs_capsule','cogs_signature','cogs_masterpiece'],
+    deps:['phAlloc','mix_capsule','mix_signature','mix_masterpiece','mat_capsule','mat_signature','mat_masterpiece','weaverRate','ld_capsule','ld_signature','ld_masterpiece'],
     feeds:['phGP','phGM']
   });
   add('phGP', {
@@ -1527,7 +1553,7 @@ function traceDefs(s, m){
     title:'Domestic gross margin', type:'pct', v:m.phGM,
     f:'phGM = phGP ÷ phRevenue',
     sub:`₱${G(m.phGP)} ÷ ₱${G(m.phRevenue)} = ${pct(m.phGM)}`,
-    deps:['markup','cogs_capsule','cogs_signature','cogs_masterpiece'], feeds:[]
+    deps:['markup','mat_capsule','mat_signature','mat_masterpiece','weaverRate','ld_capsule','ld_signature','ld_masterpiece'], feeds:[]
   });
   add('totalUsed', {
     title:'Total loom-days used', type:'num', v:m.totalUsed,
@@ -1562,7 +1588,7 @@ function traceDefs(s, m){
     title:'Year-1 Melbourne operating profit', type:'signed', v:m.opProfit,
     f:'operatingProfit = melGP − operating spend − amortisation − contingency',
     sub:`${G(Math.round(m.melGP))} − ${G(s.opSpend)} − ${G(Math.round(m.amort))} − ${G(s.contingency)} = ${G(Math.round(m.opProfit))}`,
-    deps:['mel_capsule','mel_signature','mel_masterpiece','markup','base_capsule','base_signature','base_masterpiece','cogs_capsule','cogs_signature','cogs_masterpiece','opSpend','assets','amortYears','contingency'],
+    deps:['mel_capsule','mel_signature','mel_masterpiece','markup','base_capsule','base_signature','base_masterpiece','mat_capsule','mat_signature','mat_masterpiece','weaverRate','ld_capsule','ld_signature','ld_masterpiece','opSpend','assets','amortYears','contingency'],
     feeds:['opMargin'],
     note:'Melbourne only. Domestic gross profit is not in this line.'
   });
@@ -1615,21 +1641,21 @@ function traceDefs(s, m){
     title:'Gross profit per unit', type:'peso', v:m.gpUnit,
     f:'gpPerUnit = melGP ÷ Melbourne units',
     sub:`₱${G(Math.round(m.melGP))} ÷ ${G(m.melUnits)} = ₱${G(Math.round(m.gpUnit))}`,
-    deps:['mel_capsule','mel_signature','mel_masterpiece','markup','base_capsule','base_signature','base_masterpiece','cogs_capsule','cogs_signature','cogs_masterpiece'],
+    deps:['mel_capsule','mel_signature','mel_masterpiece','markup','base_capsule','base_signature','base_masterpiece','mat_capsule','mat_signature','mat_masterpiece','weaverRate','ld_capsule','ld_signature','ld_masterpiece'],
     feeds:['ratio']
   });
   add('ratio', {
     title:'Gross profit to CAC', type:'x', v:m.ratio,
     f:'ratio = gpPerUnit ÷ CAC',
     sub:`₱${G(Math.round(m.gpUnit))} ÷ ₱${G(Math.round(m.cac))} = ${m.ratio.toFixed(1)}×`,
-    deps:['acq_media','acq_creator','acq_community','acq_popup','markup','cogs_capsule','cogs_signature','cogs_masterpiece'],
+    deps:['acq_media','acq_creator','acq_community','acq_popup','markup','mat_capsule','mat_signature','mat_masterpiece','weaverRate','ld_capsule','ld_signature','ld_masterpiece'],
     feeds:[]
   });
   add('breakeven', {
     title:'Break-even sell-through', type:'pct', v:m.breakeven,
     f:'operating profit is zero when  melGP × (rate ÷ base rate) = operating spend + amortisation + contingency\nso  break-even rate = (fixed load ÷ melGP) × base rate',
     sub:`(₱${G(Math.round(m.fixedLoad))} ÷ ₱${G(Math.round(m.melGP))}) × ${s.sellThrough}% = ${pct(m.breakeven)}`,
-    deps:['opSpend','assets','amortYears','contingency','sellThrough','markup','cogs_capsule','cogs_signature','cogs_masterpiece','mel_capsule','mel_signature','mel_masterpiece'],
+    deps:['opSpend','assets','amortYears','contingency','sellThrough','markup','mat_capsule','mat_signature','mat_masterpiece','weaverRate','ld_capsule','ld_signature','ld_masterpiece','mel_capsule','mel_signature','mel_masterpiece'],
     feeds:[],
     note:'A figure the deck does not currently state. Below this rate the pilot stops covering its own costs; the February gate sits well above it.'
   });
@@ -1679,17 +1705,30 @@ function traceDefs(s, m){
       sub:`₱${G(m.base[t.key])} × (1 + ${s.markup}%) = ₱${G(Math.round(m.price[t.key]))}`,
       deps:['base_'+t.key,'markup'], feeds:['melRevenue','phRevenue']
     });
+    add('lab_'+t.key, {
+      title:t.name+' weaver labour per unit', type:'peso', v:m.labourUnit[t.key],
+      f:'weaverLabour = loom-days × weaver rate per loom-day',
+      sub:`${G(m.ld[t.key])} × ₱${G(s.weaverRate)} = ₱${G(Math.round(m.labourUnit[t.key]))}`
+        + ` — ${pct(m.cogs[t.key] ? m.labourUnit[t.key]/m.cogs[t.key] : 0)} of this tier’s COGS`,
+      deps:['ld_'+t.key,'weaverRate'], feeds:['cogs_'+t.key,'melCOGS','phCOGS'],
+      note:'This is what makes weaver pay a real cost rather than a free gesture: raise the rate and margin falls.' });
+    add('cogs_'+t.key, {
+      title:t.name+' COGS', type:'peso', v:m.cogs[t.key],
+      f:'COGS = materials & finishing + (loom-days × weaver rate)',
+      sub:`₱${G(m.mat[t.key])} + (${G(m.ld[t.key])} × ₱${G(s.weaverRate)}) = ₱${G(m.mat[t.key])} + ₱${G(Math.round(m.labourUnit[t.key]))} = ₱${G(Math.round(m.cogs[t.key]))}`,
+      deps:['mat_'+t.key,'ld_'+t.key,'weaverRate'], feeds:['melCOGS','phCOGS','melGP','melGM'],
+      note:'COGS is derived, not typed in. Weaver labour is the largest single component, so it cannot sit outside cost.' });
     add('gpu_'+t.key, {
       title:t.name+' gross profit per unit', type:'peso', v:m.price[t.key]-m.cogs[t.key],
       f:'gp = price − COGS',
       sub:`₱${G(Math.round(m.price[t.key]))} − ₱${G(m.cogs[t.key])} = ₱${G(Math.round(m.price[t.key]-m.cogs[t.key]))}`,
-      deps:['base_'+t.key,'markup','cogs_'+t.key], feeds:['melGP','phGP']
+      deps:['base_'+t.key,'markup','mat_'+t.key,'weaverRate','ld_'+t.key], feeds:['melGP','phGP']
     });
     add('gm_'+t.key, {
       title:t.name+' margin', type:'pct', v:m.price[t.key] ? (m.price[t.key]-m.cogs[t.key])/m.price[t.key] : 0,
       f:'margin = (price − COGS) ÷ price',
       sub:`₱${G(Math.round(m.price[t.key]-m.cogs[t.key]))} ÷ ₱${G(Math.round(m.price[t.key]))} = ${pct(m.price[t.key] ? (m.price[t.key]-m.cogs[t.key])/m.price[t.key] : 0)}`,
-      deps:['base_'+t.key,'markup','cogs_'+t.key], feeds:['melGM','phGM']
+      deps:['base_'+t.key,'markup','mat_'+t.key,'weaverRate','ld_'+t.key], feeds:['melGM','phGM']
     });
   });
   // P&L rows
@@ -1719,7 +1758,7 @@ function traceDefs(s, m){
   add('companyCOGS', { title:'Company COGS, Year 1', type:'peso', v:m.companyCOGS,
     f:'companyCOGS = melCOGS + phCOGS',
     sub:`₱${G(m.melCOGS)} + ₱${G(m.phCOGS)} = ₱${G(m.companyCOGS)}`,
-    deps:['mel_capsule','mel_signature','mel_masterpiece','phAlloc','cogs_capsule','cogs_signature','cogs_masterpiece'],
+    deps:['mel_capsule','mel_signature','mel_masterpiece','phAlloc','mat_capsule','mat_signature','mat_masterpiece','weaverRate','ld_capsule','ld_signature','ld_masterpiece'],
     feeds:['companyGP'] });
   add('companyGP', { title:'Company gross profit, Year 1', type:'peso', v:m.companyGP,
     f:'companyGP = companyRevenue − companyCOGS',
@@ -1729,7 +1768,7 @@ function traceDefs(s, m){
   add('companyGM', { title:'Company gross margin, Year 1', type:'pct', v:m.companyGM,
     f:'companyGM = companyGP ÷ companyRevenue',
     sub:`₱${G(Math.round(m.companyGP))} ÷ ₱${G(Math.round(m.companyRevenue))} = ${pct(m.companyGM)}`,
-    deps:['markup','cogs_capsule','cogs_signature','cogs_masterpiece'], feeds:[] });
+    deps:['markup','mat_capsule','mat_signature','mat_masterpiece','weaverRate','ld_capsule','ld_signature','ld_masterpiece'], feeds:[] });
   add('phShare', { title:'Domestic share of company revenue', type:'pct', v:m.phShare,
     f:'phShare = phRevenue ÷ companyRevenue',
     sub:`₱${G(Math.round(m.phRevenue))} ÷ ₱${G(Math.round(m.companyRevenue))} = ${pct(m.phShare)}`,
@@ -1795,7 +1834,7 @@ function traceDefs(s, m){
   add('cumCompanyGP', { title:'Cumulative company gross profit, 5 years', type:'peso', v:m.cum.companyGP,
     f:'Σ (companyRevenue[y] − companyCOGS[y])',
     sub:`₱${G(Math.round(m.cum.companyRevenue))} − ₱${G(Math.round(m.cum.companyCOGS))} = ₱${G(Math.round(m.cum.companyGP))} (${pct(m.cum.companyGM)} blended)`,
-    deps:['markup','cogs_capsule','cogs_signature','cogs_masterpiece'], feeds:[] });
+    deps:['markup','mat_capsule','mat_signature','mat_masterpiece','weaverRate','ld_capsule','ld_signature','ld_masterpiece'], feeds:[] });
   add('cumMelOpProfit', { title:'Cumulative Melbourne operating profit, 5 years', type:'peso', v:m.cum.melOpProfit,
     f:'Year 1 from the itemised P&L, Years 2–5 as melRevenue × assumed operating margin',
     sub:m.years.map(r=>'₱'+G(Math.round(r.melOpProfit))).join(' + ') + ' = ₱' + G(Math.round(m.cum.melOpProfit)),
@@ -1861,7 +1900,7 @@ function traceDefs(s, m){
     add(id+'_gp', { title:`${x.rate}% sell-through — gross profit`, type:'peso', v:x.gp,
       f:'gp = revenue − COGS',
       sub:`₱${G(Math.round(x.rev))} − ₱${G(Math.round(x.cogs))} = ₱${G(Math.round(x.gp))}`,
-      deps:['sellThrough','markup','cogs_capsule','cogs_signature','cogs_masterpiece'], feeds:[id+'_op'] });
+      deps:['sellThrough','markup','mat_capsule','mat_signature','mat_masterpiece','weaverRate','ld_capsule','ld_signature','ld_masterpiece'], feeds:[id+'_op'] });
     add(id+'_op', { title:`${x.rate}% sell-through — operating profit`, type:'signed', v:x.op,
       f:'op = gp − operating spend − amortisation − contingency',
       sub:`${G(Math.round(x.gp))} − ${G(s.opSpend)} − ${G(Math.round(m.amort))} − ${G(s.contingency)} = ${G(Math.round(x.op))}`,
@@ -1945,17 +1984,21 @@ function tierEditor(){
       <table class="w-full text-[11px]">
         <thead><tr class="text-left" style="color:var(--muted)">
           <th class="pr-1.5 font-medium">Tier</th><th class="px-1 font-medium">Loom-days ${tagHTML('E')}</th>
-          <th class="px-1 font-medium">COGS ${tagHTML('E')}</th><th class="pl-1 font-medium">Base price ${tagHTML('D')}</th>
+          <th class="px-1 font-medium">Materials ${tagHTML('E')}</th><th class="pl-1 font-medium">Base price ${tagHTML('D')}</th>
         </tr></thead>
         <tbody>${TIERS.map(t=>`<tr>
           <td class="pr-1.5 py-1 font-medium">${t.name}</td>
           <td class="px-1 py-1"><input type="number" data-in="ld_${t.key}" data-role="n" min="1" max="60" step="1" value="${S['ld_'+t.key]}" aria-label="${t.name} loom-days"></td>
-          <td class="px-1 py-1"><input type="number" data-in="cogs_${t.key}" data-role="n" min="0" max="200000" step="500" value="${S['cogs_'+t.key]}" aria-label="${t.name} COGS"></td>
+          <td class="px-1 py-1"><input type="number" data-in="mat_${t.key}" data-role="n" min="0" max="200000" step="50" value="${S['mat_'+t.key]}" aria-label="${t.name} materials and finishing"></td>
           <td class="pl-1 py-1"><input type="number" data-in="base_${t.key}" data-role="n" min="0" max="400000" step="500" value="${S['base_'+t.key]}" aria-label="${t.name} base price"></td>
         </tr>`).join('')}</tbody>
       </table>
     </div>
-    <div class="text-[10px] mt-1.5" style="color:var(--muted)">Loom-days and COGS are team estimates — Gate 1 in October 2026 measures real loom hours. Base price is pre-markup.</div>
+    <div class="text-[10px] mt-1.5 leading-snug" style="color:var(--muted)">
+      Loom-days and materials are team estimates — Gate 1 in October 2026 measures real loom hours.
+      Base price is pre-markup. <strong>COGS is not typed in:</strong> it is materials + loom-days × the weaver
+      rate, so raising weaver pay lowers gross margin, as it should.
+    </div>
   </details>`;
 }
 function syncPair(k){
@@ -2062,7 +2105,9 @@ function renderTiers(){
   document.getElementById('tierOut').innerHTML = TIERS.map(t => `<tr style="border-top:1px solid var(--line)">
     <td class="py-1.5 pr-2 font-medium">${t.name}</td>
     <td class="py-1.5 px-2 text-right">${grp(M.ld[t.key])}</td>
-    <td class="py-1.5 px-2 text-right">${money(M.cogs[t.key])}</td>
+    <td class="py-1.5 px-2 text-right" style="color:var(--muted)">${money(M.mat[t.key])}</td>
+    <td class="py-1.5 px-2 text-right"><span class="metric" data-id="lab_${t.key}" tabindex="0" role="button"></span></td>
+    <td class="py-1.5 px-2 text-right font-semibold"><span class="metric" data-id="cogs_${t.key}" tabindex="0" role="button"></span></td>
     <td class="py-1.5 px-2 text-right" style="color:var(--muted)">${money(M.base[t.key])}</td>
     <td class="py-1.5 px-2 text-right font-semibold"><span class="metric" data-id="price_${t.key}" tabindex="0" role="button"></span></td>
     <td class="py-1.5 px-2 text-right"><span class="metric" data-id="gpu_${t.key}" tabindex="0" role="button"></span></td>
@@ -2752,6 +2797,47 @@ function chartSens(){
 /* =======================================================================
    9 · TRACE PANEL + DEPENDENCY VIEW
    ======================================================================= */
+/* ---- dependency map, derived from the model rather than hand-written --------
+   The provenance panel and the highlight used to read hand-authored `deps` lists.
+   Hand-maintained metadata drifts from the code: an audit found 24 inputs whose
+   real effects were under-declared and 10 that claimed effects they do not have.
+   So the map is now MEASURED — each input is nudged and we record which figures
+   actually move. It cannot go stale, because it is computed from the engine.
+   Built lazily (only when a panel or highlight needs it) and cached per state. */
+let DEPMAP = null, depStamp = null;
+function buildDepMap(){
+  const baseM = compute(S), baseT = traceDefs(S, baseM);
+  const ids = Object.keys(baseT).filter(k => k !== '_BM');
+  const num = (T,id) => (T[id] && typeof T[id].v === 'number') ? T[id].v : null;
+  const byInput = {}, byMetric = {};
+  ids.forEach(id => byMetric[id] = []);
+  ALL_IN.forEach(i => {
+    const v = S[i.k];
+    byInput[i.k] = [];
+    if (!isFinite(v)) return;
+    const step = i.step || 1;
+    const cands = step >= 1
+      ? [Math.min(i.max, v + Math.max(1, step)), Math.max(i.min, v - Math.max(1, step))]
+      : [Math.min(i.max, v * 1.05 + step), Math.max(i.min, v * 0.95 - step)];
+    const moved = new Set();
+    cands.filter(x => x !== v).forEach(x => {
+      const T2 = traceDefs(Object.assign({}, S, {[i.k]:x}), compute(Object.assign({}, S, {[i.k]:x})));
+      ids.forEach(id => {
+        const a = num(baseT, id), b = num(T2, id);
+        if (a !== null && b !== null && Math.abs(a - b) > Math.max(1e-9, Math.abs(a) * 1e-12)) moved.add(id);
+      });
+    });
+    byInput[i.k] = [...moved];
+    moved.forEach(id => byMetric[id].push(i.k));
+  });
+  return { byInput, byMetric };
+}
+function depMap(){
+  const stamp = JSON.stringify(S);
+  if (!DEPMAP || depStamp !== stamp){ DEPMAP = buildDepMap(); depStamp = stamp; }
+  return DEPMAP;
+}
+
 let openTrace = null;
 function showTrace(id){
   const t = TR[id]; if (!t) return;
@@ -2761,7 +2847,10 @@ function showTrace(id){
   document.getElementById('tValue').className = 'mt-3 text-2xl font-bold ' + (t.type==='signed' ? (t.v>=0?'pos':'neg') : '');
   document.getElementById('tFormula').textContent = t.f;
   document.getElementById('tSubst').textContent = t.sub + (t.note ? '\n\n' + t.note : '');
-  const deps = (t.deps||[]).filter(k=>INBY[k]);
+  // measured, not declared — see buildDepMap
+  const order = {E:0, D:1, V:2};
+  const deps = (depMap().byMetric[id] || []).filter(k=>INBY[k])
+    .sort((a,b)=> order[INBY[a].tag]-order[INBY[b].tag] || INBY[a].label.localeCompare(INBY[b].label));
   document.getElementById('tInputs').innerHTML = deps.length ? deps.map(k=>{
     const i = INBY[k]; const changed = S[k] !== DEFAULTS[k];
     return `<div class="text-[11.5px] p-1.5 rounded" style="border:1px solid var(--line)">
@@ -2780,11 +2869,13 @@ function showTrace(id){
 function closeTrace(){ openTrace = null; document.getElementById('tracePanel').classList.remove('open'); clearDeps(); }
 function markDeps(keys){
   clearDeps();
-  const set = new Set(keys);
+  const map = depMap().byInput;
+  const hit = new Set();
+  keys.forEach(k => (map[k] || []).forEach(id => hit.add(id)));
   document.querySelectorAll('[data-id]').forEach(el=>{
-    const t = TR[el.dataset.id]; if (!t) return;
-    if ((t.deps||[]).some(k=>set.has(k))) el.classList.add('dep-hit');
+    if (hit.has(el.dataset.id)) el.classList.add('dep-hit');
   });
+  return hit.size;
 }
 function clearDeps(){ document.querySelectorAll('.dep-hit').forEach(el=>el.classList.remove('dep-hit')); }
 
@@ -3123,6 +3214,57 @@ document.getElementById('testBtn').addEventListener('click', ()=>{
   checks.push(['13.3% markup rounds Capsule to ₱17,000',
     compute(Object.assign({}, DEFAULTS, {markup:13.3})).price.capsule===17000]);
 
+  // ---- COGS is built from materials + weaver labour, not typed in
+  checks.push(['COGS reproduces ₱6,500 / ₱18,000 / ₱45,000 at the ₱650 base rate',
+    m.cogs.capsule===6500 && m.cogs.signature===18000 && m.cogs.masterpiece===45000]);
+  checks.push(['weaver labour per unit is ₱1,950 / ₱10,400 / ₱14,300',
+    m.labourUnit.capsule===1950 && m.labourUnit.signature===10400 && m.labourUnit.masterpiece===14300]);
+  checks.push(['materials are the non-labour remainder and stay positive',
+    TIERS.every(t=> m.mat[t.key] > 0 && Math.abs(m.mat[t.key] + m.labourUnit[t.key] - m.cogs[t.key]) < 0.5)]);
+  // The integrity test that ties the two halves of the model together: the labour
+  // embedded in COGS across both markets must equal the wage bill computed from
+  // loom-days used. If these ever diverge, one of them is wrong.
+  checks.push(['labour inside COGS equals the total wage bill (no double-count, no gap)',
+    (()=>{ const inCogs = TIERS.reduce((a,t)=>
+        a + (m.melU[t.key] + m.phU[t.key]) * m.labourUnit[t.key], 0);
+      return Math.abs(inCogs - m.labour) < 0.5; })()]);
+  // raising weaver pay MUST cost margin — the behaviour the tool exists to show
+  const paid = compute(Object.assign({}, DEFAULTS, {weaverRate:900}));
+  checks.push(['raising weaver pay to ₱900 lowers gross margin 65.1% → 60.0%',
+    near(paid.melGM*100, 60.0, 0.05) && paid.melGM < m.melGM]);
+  checks.push(['raising weaver pay to ₱900 cuts operating profit ₱2.14M → ₱1.81M',
+    M2(paid.opProfit)===1.81 && paid.opProfit < m.opProfit]);
+  checks.push(['raising weaver pay raises weaver income at the same time',
+    paid.perWeaver > m.perWeaver]);
+  checks.push(['cutting weaver pay to ₱500 raises margin and lowers weaver income',
+    (()=>{ const cheap = compute(Object.assign({}, DEFAULTS, {weaverRate:500}));
+      return cheap.melGM > m.melGM && cheap.perWeaver < m.perWeaver; })()]);
+  checks.push(['more loom-days per garment raises that tier’s COGS',
+    compute(Object.assign({}, DEFAULTS, {ld_signature:20})).cogs.signature
+      === m.mat.signature + 20*650]);
+  // ---- dependency map: measured, so it must agree with the engine
+  DEPMAP = null; depStamp = null;               // force a rebuild at base state
+  const dm = depMap();
+  checks.push(['weaver rate is recorded as driving COGS, margin and operating profit',
+    ['melCOGS','melGM','melGP','opProfit','cogs_capsule','labour','perWeaver']
+      .every(id=> dm.byInput.weaverRate.includes(id))]);
+  checks.push(['inert inputs are recorded as driving nothing',
+    dm.byInput.looms.length === 0 && dm.byInput.fxAud.length === 0 && dm.byInput.fxUsd.length === 0]);
+  checks.push(['loom-days per weaver does NOT claim to set per-weaver income',
+    !dm.byInput.loomDaysPerWeaver.includes('y1_perWeaver')
+      && dm.byInput.loomDaysPerWeaver.includes('util')]);
+  checks.push(['a Year-5 input does not claim to affect Year 1',
+    !dm.byInput.weaversY5.includes('y1_util') && dm.byInput.weaversY5.includes('y5_util')]);
+  // Monte Carlo settings are excluded: their effect is the simulation panel, which
+  // is not part of the traceable figure registry, so measuring zero is correct.
+  checks.push(['every estimate that should move a figure does move one',
+    ALL_IN.filter(i=>i.tag==='E' && !/DISPLAY ONLY|MONTE CARLO/.test(SCOPE_NOTE[i.k]||''))
+      .every(i=> (dm.byInput[i.k]||[]).length > 0)]);
+  checks.push(['no input is silently inert without being labelled as such',
+    ALL_IN.filter(i=> (dm.byInput[i.k]||[]).length === 0)
+      .every(i=> /DISPLAY ONLY|MONTE CARLO/.test(SCOPE_NOTE[i.k]||''))]);
+  checks.push(['the map is exhaustive for a wide-reaching input (Capsule units)',
+    dm.byInput.mel_capsule.length > 30]);
   // ---- payback
   checks.push(['programme pays back during Year 2', m.paybackYear===2 && m.payback>1 && m.payback<2]);
   checks.push(['cumulative op profit passes the ask between Y1 and Y2',
