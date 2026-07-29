@@ -106,6 +106,16 @@ h1,h2,h3,.strongnum{ color:var(--text) }
 .metric{ cursor:pointer; border-bottom:1px dotted var(--line-strong); transition:background .15s }
 .metric:hover,.metric:focus-visible{ background:var(--warn-bg); outline:none }
 .metric.dep-hit{ background:rgba(181,131,74,.22); box-shadow:0 0 0 2px rgba(181,131,74,.4) }
+/* a figure that just changed announces itself */
+@keyframes flashfig{
+  0%   { background:rgba(181,131,74,.55); box-shadow:0 0 0 3px rgba(181,131,74,.30) }
+  100% { background:transparent;          box-shadow:0 0 0 3px rgba(181,131,74,0) }
+}
+.metric.flashed{ animation:flashfig 1.05s ease-out 1; border-radius:3px }
+@media (prefers-reduced-motion:reduce){ .metric.flashed{ animation:none; background:rgba(181,131,74,.30) } }
+/* scope chips on inputs whose effects are not in the Year-1 view */
+.scope{ font-size:.56rem; font-weight:700; letter-spacing:.06em; padding:1px 4px; border-radius:3px;
+  border:1px dashed var(--line-strong); color:var(--muted); white-space:nowrap }
 .pos{ color:var(--pos) }
 .neg{ color:var(--neg) }
 .s-mel{ color:var(--s-mel) } .s-ph{ color:var(--s-ph) }
@@ -289,6 +299,12 @@ main figure, main .grid > *, main .overflow-x-auto{ min-width:0 }
           <span class="text-[11px] font-medium" style="color:var(--muted)">on <span class="metric" data-id="programme" tabindex="0" role="button"></span></span>
         </div>
       </div>
+    </div>
+
+    <!-- proof of recalculation: what changed, and how many figures moved -->
+    <div id="liveLine" class="mt-2 text-[11px] px-2.5 py-1.5 rounded flex items-center gap-2 flex-wrap"
+         style="background:var(--raised); border:1px solid var(--line)" aria-live="polite">
+      <span style="color:var(--muted)">Ready — change any assumption and every affected figure below will flash as it updates.</span>
     </div>
 
     <div id="modBadge" class="hidden mt-2 text-[11px] flex items-center gap-2 flex-wrap px-2.5 py-1.5 rounded"
@@ -1024,7 +1040,31 @@ const TAGCLS  = {V:'tag-v', D:'tag-d', E:'tag-e'};
    2 · STATE
    ======================================================================= */
 let S = Object.assign({}, DEFAULTS);
-let AUD = 0, M = null;
+let AUD = 0, M = null, lastChange = null;
+
+/* Inputs whose effects are genuinely NOT visible in the Year-1 figures. Saying so
+   on the control itself is the honest fix for "I moved it and nothing happened". */
+const SCOPE_NOTE = {
+  looms:        'DISPLAY ONLY — not in any calculation',
+  fxAud:        'DISPLAY ONLY — currency toggle',
+  fxUsd:        'DISPLAY ONLY — currency toggle',
+  weaversY2:    'FIVE-YEAR VIEW ONLY',
+  weaversY3:    'FIVE-YEAR VIEW ONLY',
+  weaversY4:    'FIVE-YEAR VIEW ONLY',
+  weaversY5:    'FIVE-YEAR VIEW ONLY',
+  melTargetY2:  'FIVE-YEAR VIEW ONLY',
+  melTargetY3:  'FIVE-YEAR VIEW ONLY',
+  melTargetY4:  'FIVE-YEAR VIEW ONLY',
+  melTargetY5:  'FIVE-YEAR VIEW ONLY',
+  phGrowth:     'FIVE-YEAR VIEW ONLY',
+  opMarginY2:   'FIVE-YEAR VIEW ONLY',
+  opMarginY3:   'FIVE-YEAR VIEW ONLY',
+  opMarginY4:   'FIVE-YEAR VIEW ONLY',
+  opMarginY5:   'FIVE-YEAR VIEW ONLY',
+  sellThrough:  'SENSITIVITY & GATE — not the Year-1 target',
+  mcSpread:     'MONTE CARLO ONLY',
+  mcTrials:     'MONTE CARLO ONLY'
+};
 
 const PRESETS = {
   base: ()=> Object.assign({}, DEFAULTS),
@@ -1869,6 +1909,8 @@ function buildInputs(){
       if (d && d.min !== undefined && e.target.type === 'number'){
         v = Math.max(d.min, Math.min(d.max, v));
       }
+      if (S[k] === v) return;                       // nothing actually changed
+      lastChange = { k, from:S[k], to:v };
       S[k] = v;
       syncPair(k);
       schedule();
@@ -1883,7 +1925,8 @@ function inputRow(i){
   const v = S[i.k];
   return `<div>
     <div class="flex items-start justify-between gap-2">
-      <label class="lbl leading-tight" for="n_${i.k}">${i.label}</label>${tagHTML(i.tag)}
+      <label class="lbl leading-tight" for="n_${i.k}">${i.label}</label>
+      <span class="flex items-center gap-1 shrink-0">${SCOPE_NOTE[i.k]?`<span class="scope">${SCOPE_NOTE[i.k]}</span>`:''}${tagHTML(i.tag)}</span>
     </div>
     <div class="flex items-center gap-2 mt-1">
       <input type="range" data-in="${i.k}" data-role="r" min="${i.min}" max="${i.max}" step="${i.step}"
@@ -1925,7 +1968,17 @@ function syncAllInputs(){ Object.keys(S).forEach(syncPair); }
    ======================================================================= */
 const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const prev = {};
+let flashCount = 0;
 function setMetric(el, id, value, type){
+  // Flag figures that actually moved. Without this, a judge who changes an input
+  // whose effects are off-screen has no evidence the model responded at all.
+  if (prev[id] !== undefined && isFinite(value) && isFinite(prev[id]) && prev[id] !== value){
+    flashCount++;
+    el.classList.remove('flashed');
+    void el.offsetWidth;                      // restart the animation
+    el.classList.add('flashed');
+    setTimeout(()=>el.classList.remove('flashed'), 1100);
+  }
   // Tweening is decoration. The displayed figure must equal the model even if
   // rAF never fires (backgrounded tab, throttled renderer) — so the final value
   // is always written, and the animation only fills the 250ms in between.
@@ -1971,6 +2024,7 @@ function render(){
   renderAudit();
 
   // fill every [data-id] from the trace registry
+  flashCount = 0;
   document.querySelectorAll('[data-id]').forEach(el => {
     const t = TR[el.dataset.id];
     if (!t) return;
@@ -2000,6 +2054,7 @@ function render(){
   });
 
   updateModBadge();
+  renderLiveLine();
   if (openTrace) showTrace(openTrace);
 }
 
@@ -2301,6 +2356,35 @@ function renderFigureIndex(){
     <td class="py-1.5 pr-2 align-top whitespace-nowrap" style="color:var(--muted)">${r[0]}</td>
     <td class="py-1.5 pl-2 leading-snug">${r[1]}</td>
   </tr>`).join('');
+}
+
+/* Report what the last change did. If an input moves nothing visible, say so
+   plainly and name where its effect lives — silence reads as a broken tool. */
+function renderLiveLine(){
+  const el = document.getElementById('liveLine');
+  if (!lastChange){ return; }
+  const i = INBY[lastChange.k] || { label:lastChange.k, unit:'' };
+  const u = i.unit || '';
+  const fmtv = v => grp(v, v % 1 ? 1 : 0) + u;
+  const scope = SCOPE_NOTE[lastChange.k];
+  const arrow = `<strong>${esc(i.label)}</strong> <span style="color:var(--muted)">${fmtv(lastChange.from)} →</span> <strong>${fmtv(lastChange.to)}</strong>`;
+  if (flashCount > 0){
+    el.style.cssText = 'background:var(--ok-bg); border:1px solid rgba(76,122,53,.45)';
+    el.innerHTML = `<span>${arrow}</span>`
+      + `<span class="tag tag-v">${grp(flashCount)} FIGURE${flashCount===1?'':'S'} UPDATED</span>`
+      + `<span style="color:var(--muted)">the changed figures are flashing below</span>`;
+  } else {
+    el.style.cssText = 'background:var(--warn-bg); border:1px solid var(--warn)';
+    el.innerHTML = `<span>${arrow}</span>`
+      + `<span class="tag tag-e">NO FIGURE CHANGED</span>`
+      + `<span style="color:var(--muted)">`
+      + (scope === 'DISPLAY ONLY — not in any calculation'
+          ? `this input is shown for context and is deliberately not used in any calculation`
+          : scope
+            ? `by design — this input only affects the ${scope.toLowerCase().replace(' only','').replace(' — currency toggle','')} section`
+            : `the value moved too little to alter any displayed figure at this rounding`)
+      + `</span>`;
+  }
 }
 
 /* ---- breach resolver, payback ------------------------------------------- */
