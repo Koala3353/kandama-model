@@ -2941,6 +2941,14 @@ document.getElementById('fab').addEventListener('click', ()=>setDrawer(true));
    ======================================================================= */
 document.getElementById('testBtn').addEventListener('click', ()=>{
   const m = compute(Object.assign({}, DEFAULTS));
+  // These checks assert the engine against the base case, so they must run with the
+  // globals AT the base case — otherwise clicking "Run checks" after changing an
+  // input compares a base-case baseline against perturbed state and reports
+  // failures that are artefacts of the harness. Restored in the finally below.
+  const _S = S, _M = M;
+  S = Object.assign({}, DEFAULTS);
+  M = m;
+  try {
   const near = (a,b,tol)=>Math.abs(a-b) <= (tol===undefined?0.5:tol);
   const checks = [
     ['capacity ceiling 3,190', near(m.ceiling,3190,0)],
@@ -3049,7 +3057,6 @@ document.getElementById('testBtn').addEventListener('click', ()=>{
       mel_masterpiece:4 - f.cutUnits.masterpiece})).state !== 'breach'; })()]);
   checks.push(['no resolver shown when inside capacity', m.fix === null]);
   // ---- tornado
-  const tOld = M; M = m;
   const tn = tornado('opProfit', 20);
   checks.push(['tornado ranks loom-days per garment or units top for operating profit',
     tn.rows.length > 3 && /loom-days|units|COGS|price/i.test(tn.rows[0].label)]);
@@ -3082,9 +3089,7 @@ document.getElementById('testBtn').addEventListener('click', ()=>{
     mc1.p10 <= mc1.p50 && mc1.p50 <= mc1.p90]);
   checks.push(['Monte Carlo samples only estimate-tagged inputs',
     mc1.sampled.every(k=>INBY[k] && INBY[k].tag==='E')]);
-  M = tOld;
   // ---- share link round-trip
-  const savedS = S;
   S = Object.assign({}, DEFAULTS, {weavers:41, markup:7, phAlloc:900});
   const enc = encodeScenario();
   S = Object.assign({}, DEFAULTS);
@@ -3108,7 +3113,6 @@ document.getElementById('testBtn').addEventListener('click', ()=>{
   checks.push(['a shared link replaces state rather than merging into it',
     S.weavers === 41 && S.weaverRate === DEFAULTS.weaverRate && S.looms === DEFAULTS.looms]);
   location.hash = oldHash;
-  S = savedS;
 
   // breach behaviour
   const breach = compute(Object.assign({}, DEFAULTS, {mel_capsule:800}));
@@ -3119,7 +3123,11 @@ document.getElementById('testBtn').addEventListener('click', ()=>{
   const out = document.getElementById('testOut');
   const fails = checks.filter(c=>!c[1]).length;
   out.innerHTML = `<div class="font-bold ${fails?'neg':'pos'}">${checks.length-fails}/${checks.length} passing${fails?' — '+fails+' FAILING':''}</div>`
+    + `<div style="color:var(--muted)">checked against the base case, whatever scenario is on screen</div>`
     + checks.map(c=>`<div class="${c[1]?'pos':'neg'}">${c[1]?'✓':'✕'} ${c[0]}</div>`).join('');
+  } finally {
+    S = _S; M = _M;                  // never leave the reader's scenario disturbed
+  }
 });
 
 /* =======================================================================
