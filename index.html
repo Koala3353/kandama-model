@@ -1,0 +1,3109 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kandama · Melbourne Model — check our numbers</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!--
+==========================================================================
+ INPUT DEFAULTS — single block, edit here.
+ Every figure this page displays is computed from these. Nothing downstream
+ is hard-coded. See the DEFAULTS object in the script below for the live
+ values; this comment mirrors it for a future editor.
+
+  weavers 29 (VERIFIED, case brief)      looms 18 (VERIFIED, display only)
+  loomDaysPerWeaver 110 (ESTIMATE)       weaverRate 650 (DECISION)
+  tiers  Capsule      loomDays  3  cogs  6,500  basePrice  15,000
+         Signature    loomDays 16  cogs 18,000  basePrice  48,000
+         Masterpiece  loomDays 22  cogs 45,000  basePrice 150,000
+  markup 15%  ->  effective prices 17,250 / 55,200 / 172,500
+  melbourne units 220 / 36 / 4           phAllocation 1,500 loom-days
+  domestic mix 90 / 9 / 1 %
+  assets 1,240,000  amortYears 3  opSpend 1,510,000  contingency 150,000
+  workingCapital 1,200,000
+  acquisition  media 150,000  creator 210,000  community 150,000  popup 120,000
+  weaversY3/4/5 45/55/65   melTargets Y2-5 300/460/560/650
+  phGrowth 5%   opMargins Y2-5 35/38/39/40%   sellThrough 80%
+  fxAud 43 (VERIFIED)   fxUsd 61.7 (VERIFIED)
+==========================================================================
+-->
+
+<style>
+/* ---------------------------------------------------------------------------
+   Dark mode is its own selected set of steps, not an inverted light theme.
+   The deck's brown family is kept, but desaturated and lifted off pure black:
+   a saturated #241a14 ground under full-cream #f3e9d8 text is what caused the
+   eye strain (high contrast on a heavily saturated red-brown vibrates).
+   Ground is now a low-chroma near-black warm; body text sits at ~11:1 rather
+   than ~14:1; the saturated espresso is demoted from panel-ground to accent.
+   Series colours are validated with the dataviz palette checker, per mode.
+   --------------------------------------------------------------------------- */
+:root{
+  --ink:#241a14; --espresso:#4a2418; --crimson:#8e1f1f; --clay:#b5834a;
+  --clay-light:#cfa572; --moss:#4c7a35; --cream:#f3e9d8; --sand:#fbf7f0;
+
+  /* dark (default) */
+  --ground:#1b1512;        /* validated chart surface */
+  --panel:#221b16;         /* subtle lift, not a saturated brown */
+  --raised:#2a221c;
+  --text:#e4dbcd;          /* softened from full cream */
+  --body:#cabfaf;
+  --muted:#9c8a76;
+  --label:#c39a63;         /* clay, lightened just enough to read as a label */
+  --line:rgba(181,131,74,.20);
+  --line-strong:rgba(181,131,74,.38);
+  --pos:#84b862; --neg:#d98a80;
+  --warn:#c99a4e; --warn-bg:rgba(181,131,74,.14);
+  --bad:#c1544b; --bad-bg:rgba(142,31,31,.22); --bad-ink:#f0bdb8;
+  --ok:#5f9440; --ok-bg:rgba(76,122,53,.18);
+  --s-mel:#bd8a3e;         /* Melbourne  — dataviz: all checks pass */
+  --s-ph:#96502f;          /* Domestic   — dataviz: all checks pass */
+  --s-free:#4c7a35;        /* headroom (status, not a series) */
+  --grid:rgba(181,131,74,.13);
+}
+html.light{
+  --ground:var(--sand); --panel:#ffffff; --raised:#f4ece0;
+  --text:#2b1d15; --body:#3d2c20; --muted:#6b5340; --label:#7a5327;
+  --line:rgba(74,36,24,.16); --line-strong:rgba(74,36,24,.30);
+  --pos:#3d6329; --neg:#a33328;
+  --warn:#8a5f22; --warn-bg:rgba(181,131,74,.16);
+  --bad:#8e1f1f; --bad-bg:rgba(142,31,31,.10); --bad-ink:#7a1a1a;
+  --ok:#3d6329; --ok-bg:rgba(76,122,53,.12);
+  --s-mel:#b07d30;         /* light-mode steps, separately validated */
+  --s-ph:#96432a;
+  --s-free:#4c7a35;
+  --grid:rgba(74,36,24,.12);
+}
+*{ -webkit-tap-highlight-color:transparent }
+body{
+  background:var(--ground); color:var(--text);
+  font-family:'Inter',system-ui,sans-serif;
+  font-variant-numeric:tabular-nums;
+  -webkit-font-smoothing:antialiased;
+}
+.num,.metric,table,input,td,th{ font-variant-numeric:tabular-nums }
+.mono{ font-family:'JetBrains Mono',ui-monospace,monospace }
+.panel{ background:var(--panel); border:1px solid var(--line); border-radius:10px }
+.hair{ border-color:var(--line) }
+h2.sec{ font-size:.72rem; letter-spacing:.16em; text-transform:uppercase; color:var(--label) }
+.lbl{ color:var(--muted); font-size:.72rem; letter-spacing:.04em }
+body{ color:var(--body) }
+h1,h2,h3,.strongnum{ color:var(--text) }
+
+/* provenance tags */
+.tag{ font-size:.58rem; font-weight:700; letter-spacing:.09em; padding:2px 5px;
+      border-radius:3px; white-space:nowrap; border:1px solid }
+.tag-v{ color:var(--pos); border-color:rgba(76,122,53,.55); background:var(--ok-bg) }
+.tag-d{ color:var(--muted); border-color:var(--line-strong); background:transparent }
+.tag-e{ color:var(--warn); border-color:rgba(181,131,74,.55); background:var(--warn-bg) }
+
+/* clickable computed figures */
+.metric{ cursor:pointer; border-bottom:1px dotted var(--line-strong); transition:background .15s }
+.metric:hover,.metric:focus-visible{ background:var(--warn-bg); outline:none }
+.metric.dep-hit{ background:rgba(181,131,74,.22); box-shadow:0 0 0 2px rgba(181,131,74,.4) }
+.pos{ color:var(--pos) }
+.neg{ color:var(--neg) }
+.s-mel{ color:var(--s-mel) } .s-ph{ color:var(--s-ph) }
+.swatch{ display:inline-block; width:9px; height:9px; border-radius:2px; vertical-align:middle }
+
+/* range inputs */
+input[type=range]{ -webkit-appearance:none; appearance:none; height:4px; border-radius:2px;
+  background:var(--line-strong); width:100% }
+input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:15px; height:15px;
+  border-radius:50%; background:var(--label); border:2px solid var(--ground); cursor:pointer }
+input[type=range]::-moz-range-thumb{ width:15px; height:15px; border-radius:50%;
+  background:var(--label); border:2px solid var(--ground); cursor:pointer }
+input[type=range]:focus-visible{ outline:2px solid var(--label); outline-offset:3px }
+input[type=number],input[type=text]{ background:var(--raised); border:1px solid var(--line);
+  border-radius:5px; padding:3px 6px; color:var(--text); font-size:.8rem; width:100% }
+input[type=number]:focus,input[type=text]:focus{ outline:2px solid var(--label); outline-offset:1px }
+button:focus-visible,a:focus-visible,summary:focus-visible{ outline:2px solid var(--label); outline-offset:2px }
+.btn{ border:1px solid var(--line-strong); border-radius:6px; padding:5px 10px; font-size:.74rem;
+  font-weight:600; letter-spacing:.02em; color:var(--body); background:transparent; cursor:pointer }
+.btn:hover{ background:var(--warn-bg); border-color:var(--label); color:var(--text) }
+.btn-on{ background:var(--label); color:#1b1512; border-color:var(--label) }
+
+/* capacity bar */
+/* stacked capacity bar — 2px surface gap between fills, per dataviz mark spec */
+.capwrap{ height:34px; border-radius:6px; display:flex; gap:2px; padding:2px;
+  border:1px solid var(--line); background:var(--raised) }
+.capseg{ transition:width .25s ease; display:flex; align-items:center; justify-content:center;
+  font-size:.62rem; font-weight:700; letter-spacing:.05em; overflow:hidden; white-space:nowrap;
+  border-radius:4px }
+.seg-mel{ background:var(--s-mel); color:#1b1512 }
+.seg-ph{ background:var(--s-ph); color:#fff }
+.seg-free{ background:var(--s-free); color:#fff }
+.seg-over{ background:var(--crimson); color:#fff }
+
+.undeliverable{ position:relative }
+.undeliverable::after{ content:'UNDELIVERABLE'; position:absolute; top:-9px; right:-6px;
+  font-size:.5rem; font-weight:800; letter-spacing:.08em; color:#fff;
+  background:var(--crimson); padding:1px 4px; border-radius:2px }
+
+/* charts */
+.chart{ width:100%; height:auto; display:block; overflow:visible }
+.chart text{ fill:var(--muted); font-size:10px; font-family:'Inter',sans-serif }
+.chart .vlab{ fill:var(--body); font-size:10px; font-weight:600 }
+/* On a phone, scaling a 560-wide chart down to 390 shrinks its labels to ~6px.
+   Scroll the chart at a legible size instead of squashing it — the table beside
+   every chart carries the same numbers for anyone who would rather not scroll. */
+.chartScroll{ overflow-x:auto; overflow-y:hidden; padding-bottom:2px; max-width:100% }
+/* grid/flex children default to min-width:auto, which lets a min-width chart push
+   the whole page wider than the phone. Let them shrink and scroll internally. */
+main figure, main .grid > *, main .overflow-x-auto{ min-width:0 }
+@media (max-width:700px){
+  .chartScroll .chart{ min-width:520px }
+  .chartScroll::after{ content:'swipe to see the whole chart →'; display:block;
+    font-size:10px; color:var(--muted); padding-top:2px }
+}
+.chart .grid{ stroke:var(--grid); stroke-width:1 }
+.chart .axis{ stroke:var(--line-strong); stroke-width:1 }
+.chart .ref{ stroke:var(--crimson); stroke-width:1; stroke-dasharray:3 3 }
+.tip{ position:fixed; z-index:90; pointer-events:none; opacity:0; transition:opacity .12s;
+  background:var(--raised); border:1px solid var(--line-strong); border-radius:6px;
+  padding:6px 8px; font-size:11px; color:var(--text); box-shadow:0 6px 18px rgba(0,0,0,.35);
+  max-width:230px }
+.tip.on{ opacity:1 }
+.hit{ fill:transparent; cursor:crosshair }
+.hit:hover{ fill:rgba(181,131,74,.10) }
+
+/* drawer (mobile inputs) */
+@media (max-width:1023px){
+  #inputs{ position:fixed; inset:0 auto 0 0; width:min(90vw,380px); z-index:60;
+    transform:translateX(-101%); transition:transform .25s ease; overflow-y:auto;
+    background:var(--ground); border-right:1px solid var(--line); padding-bottom:5rem }
+  #inputs.open{ transform:none }
+  #scrim.open{ opacity:1; pointer-events:auto }
+}
+#scrim{ opacity:0; pointer-events:none; transition:opacity .25s }
+@media (min-width:1024px){ #scrim{ display:none } }
+
+#tracePanel{ transform:translateX(101%); transition:transform .25s ease }
+#tracePanel.open{ transform:none }
+
+/* ---- making the input panel unmissable --------------------------------- */
+#inputs{ border-left:3px solid var(--label) }
+@media (min-width:1024px){ #inputs{ padding-left:14px } }
+.panelHead{ background:var(--label); color:#1b1512; border-radius:8px; padding:10px 12px }
+.panelHead h2{ color:#1b1512 }
+.stepnum{ display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px;
+  border-radius:50%; font-size:.7rem; font-weight:800; flex:0 0 auto }
+.stepnum-a{ background:var(--label); color:#1b1512 }
+.stepnum-b{ background:transparent; color:var(--label); border:1.5px solid var(--label) }
+
+/* On a phone the control row wrapped to three lines and ate half the screen.
+   Keep it one swipeable row so the outputs stay visible. */
+@media (max-width:1023px){
+  /* !important because the Tailwind CDN injects its stylesheet after this one,
+     so its .flex-wrap would otherwise win on equal specificity. */
+  header .ctrlRow{ flex-wrap:nowrap !important; overflow-x:auto; padding-bottom:3px }
+  header .ctrlRow > *{ flex:0 0 auto }
+  main{ padding-bottom:76px }   /* clear the floating button, so it never hides text */
+}
+
+/* floating "change assumptions" button on small screens */
+#fab{ position:fixed; right:14px; bottom:14px; z-index:45; display:none;
+  align-items:center; gap:8px; padding:11px 16px; border-radius:999px;
+  background:var(--label); color:#1b1512; font-weight:700; font-size:.82rem;
+  border:none; box-shadow:0 8px 22px rgba(0,0,0,.45); cursor:pointer }
+@media (max-width:1023px){ #fab{ display:inline-flex } }
+
+@keyframes nudge{
+  0%,100%{ box-shadow:0 0 0 0 rgba(181,131,74,.55) }
+  50%    { box-shadow:0 0 0 9px rgba(181,131,74,0) }
+}
+.nudge{ animation:nudge 1.9s ease-out 3 }
+
+/* ---- onboarding ------------------------------------------------------- */
+#tour{ position:fixed; inset:0; z-index:100; background:rgba(10,7,5,.78);
+  display:flex; align-items:center; justify-content:center; padding:16px;
+  backdrop-filter:blur(3px) }
+#tour[hidden]{ display:none }
+.tourCard{ background:var(--panel); border:1px solid var(--label); border-radius:12px;
+  max-width:560px; width:100%; max-height:92vh; overflow-y:auto;
+  box-shadow:0 24px 60px rgba(0,0,0,.55) }
+.tourStep{ display:flex; gap:11px; align-items:flex-start }
+.tourStep b{ color:var(--text) }
+.tourKey{ display:flex; gap:10px; flex-wrap:wrap; font-size:.7rem }
+
+@media (prefers-reduced-motion:reduce){
+  *{ transition:none !important; animation:none !important }
+}
+::-webkit-scrollbar{ width:9px; height:9px }
+::-webkit-scrollbar-thumb{ background:rgba(181,131,74,.4); border-radius:5px }
+</style>
+</head>
+<body>
+
+<!-- ================= HEADER ================= -->
+<header class="sticky top-0 z-40 backdrop-blur" style="background:color-mix(in srgb,var(--ground) 92%,transparent); border-bottom:1px solid var(--line)">
+  <div class="max-w-[1500px] mx-auto px-4 py-2.5">
+    <div class="flex items-start gap-3 flex-wrap">
+      <div class="flex-1 min-w-[240px]">
+        <div class="flex items-center gap-2">
+          <button id="drawerBtn" class="btn btn-on lg:hidden" aria-expanded="false" aria-controls="inputs">☰ Change assumptions</button>
+          <h1 class="font-bold text-[15px] tracking-tight">Kandama · Melbourne market-entry model</h1>
+        </div>
+        <p class="text-[11px] mt-0.5" style="color:var(--muted)">
+          Every figure below is computed live from the inputs
+          <span class="hidden lg:inline">on the left</span> — change anything and watch it recalculate, then
+          click any number to see its formula. <strong>Check our numbers.</strong>
+        </p>
+      </div>
+      <div class="flex items-center gap-1.5 flex-wrap ctrlRow">
+        <span class="lbl mr-1 hidden sm:inline">Scenario</span>
+        <button class="btn preset" data-preset="base">Base case</button>
+        <button class="btn preset" data-preset="bear">Bear</button>
+        <button class="btn preset" data-preset="bull">Bull</button>
+        <button class="btn preset" data-preset="nomarkup">No markup</button>
+        <button class="btn" id="resetBtn" title="Return every field to the deck's base case">↺ Reset to deck</button>
+        <span class="w-px h-5 self-center" style="background:var(--line)"></span>
+        <button class="btn" id="curBtn" title="Showing pesos — click for Australian dollars">₱ / A$ / US$</button>
+        <button class="btn" id="themeBtn" title="Toggle light and dark">◐</button>
+        <button class="btn" id="exportBtn" title="Download this scenario">⇩ Export</button>
+        <button class="btn" id="shareBtn" title="Copy a link that reopens this exact scenario">🔗 Copy link</button>
+        <button class="btn" id="helpBtn" title="How to use this page">? How to use</button>
+      </div>
+    </div>
+
+    <!-- sticky summary bar: the three headline outputs, always on screen -->
+    <div class="mt-2 grid grid-cols-3 gap-2">
+      <div class="panel px-2.5 py-1.5">
+        <div class="lbl">Year-1 operating profit</div>
+        <div class="text-base sm:text-lg font-bold"><span class="metric" data-id="opProfit" tabindex="0" role="button"></span></div>
+      </div>
+      <div class="panel px-2.5 py-1.5">
+        <div class="lbl">Loom-day utilisation</div>
+        <div class="text-base sm:text-lg font-bold"><span class="metric" data-id="util" tabindex="0" role="button"></span>
+          <span id="utilChip" class="tag ml-1 align-middle"></span></div>
+      </div>
+      <div class="panel px-2.5 py-1.5">
+        <div class="lbl">Cumulative multiple on the ask</div>
+        <div class="text-base sm:text-lg font-bold strongnum">
+          <span class="metric" data-id="cumMultiple" tabindex="0" role="button"></span>
+          <span class="text-[11px] font-medium" style="color:var(--muted)">on <span class="metric" data-id="programme" tabindex="0" role="button"></span></span>
+        </div>
+      </div>
+    </div>
+
+    <div id="modBadge" class="hidden mt-2 text-[11px] flex items-center gap-2 flex-wrap px-2.5 py-1.5 rounded"
+         style="background:var(--warn-bg); border:1px solid var(--warn)">
+      <strong id="modText"></strong>
+      <button class="btn !py-0.5" id="diffBtn">Show diff vs base</button>
+      <span style="color:var(--muted)">You are looking at your own scenario, not the team's plan.</span>
+    </div>
+  </div>
+</header>
+
+<div id="scrim" class="fixed inset-0 z-50 bg-black/60 lg:hidden"></div>
+
+<!-- ================= ONBOARDING ================= -->
+<div id="tour" hidden role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+  <div class="tourCard p-5">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="lbl">Kandama Collective · Melbourne market entry</div>
+        <h2 id="tourTitle" class="text-lg font-bold leading-tight mt-0.5">This is our financial model, not a summary of it.</h2>
+      </div>
+      <button class="btn shrink-0" id="tourX" aria-label="Close and start exploring">✕</button>
+    </div>
+
+    <p class="text-[13px] mt-2.5 leading-relaxed">
+      Every figure here is computed live from the assumptions on the left. Nothing is typed in.
+      Change any assumption you would like to test and the whole model — margins, capacity, the five-year
+      view — recalculates, and shows you its working.
+    </p>
+
+    <div class="mt-4 space-y-3.5 text-[12.5px] leading-relaxed">
+      <div class="tourStep">
+        <span class="stepnum stepnum-a">1</span>
+        <div><b>Change our assumptions</b> — the panel <span class="lg:inline hidden">on the left</span><span class="lg:hidden inline">behind the <em>Change assumptions</em> button</span>.
+        Drag a slider or type an exact value. Try weaver pay, or loom-days per weaver.</div>
+      </div>
+      <div class="tourStep">
+        <span class="stepnum stepnum-a">2</span>
+        <div><b>Click any number</b> to see its formula with the live values substituted in, where each input came from, and what it feeds into.</div>
+      </div>
+      <div class="tourStep">
+        <span class="stepnum stepnum-a">3</span>
+        <div><b>Watch the capacity bar.</b> 29 weavers can only produce 3,190 loom-days a year. Push Melbourne units up and the plan turns red — because it genuinely cannot be delivered.</div>
+      </div>
+      <div class="tourStep">
+        <span class="stepnum stepnum-a">4</span>
+        <div><b>Or jump to a scenario</b> — Base case, Bear, Bull, No markup — then <em>Reset to deck</em> to come back to the numbers in our presentation.</div>
+      </div>
+    </div>
+
+    <div class="mt-4 p-3 rounded" style="background:var(--raised); border:1px solid var(--line)">
+      <div class="lbl mb-1.5">Every input is tagged so you know how much to trust it</div>
+      <div class="tourKey">
+        <span class="tag tag-v">🟢 VERIFIED</span><span style="color:var(--muted)">a sourced fact</span>
+        <span class="tag tag-d">🔵 DECISION</span><span style="color:var(--muted)">our choice, arguable</span>
+        <span class="tag tag-e">🟡 ESTIMATE</span><span style="color:var(--muted)">our assumption — push on these</span>
+      </div>
+    </div>
+
+    <div class="mt-4 flex items-center gap-2 flex-wrap">
+      <button class="btn btn-on !px-4 !py-2 !text-[13px]" id="tourGo">Start exploring →</button>
+      <button class="btn !py-2" id="tourBreak">Show me the capacity limit</button>
+      <label class="text-[11px] flex items-center gap-1.5 ml-auto cursor-pointer" style="color:var(--muted)">
+        <input type="checkbox" id="tourOff" class="!w-auto"> don’t show this again
+      </label>
+    </div>
+    <p class="text-[10.5px] mt-2.5" style="color:var(--muted)">
+      Scope: the ₱2.90M ask funds the Melbourne pilot only. The Philippines domestic line is Kandama’s existing,
+      self-funding business, shown here for capacity context. You can reopen this with <strong>? How to use</strong> in the header.
+    </p>
+  </div>
+</div>
+
+<button id="fab" aria-controls="inputs" aria-expanded="false">⇠ Change assumptions</button>
+
+<div class="max-w-[1500px] mx-auto px-4 py-4 lg:grid lg:grid-cols-[370px_minmax(0,1fr)] lg:gap-5">
+
+  <!-- ================= INPUTS ================= -->
+  <aside id="inputs" class="lg:sticky lg:top-[132px] lg:self-start lg:max-h-[calc(100vh-150px)] lg:overflow-y-auto lg:pr-2">
+    <div class="px-3 pt-3 lg:px-0 lg:pt-0">
+      <div class="panelHead flex items-start justify-between gap-2">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="stepnum" style="background:#1b1512;color:var(--label)">1</span>
+            <h2 class="text-[13px] font-bold tracking-tight">Change our assumptions</h2>
+          </div>
+          <p class="text-[11px] mt-1 leading-snug" style="color:#3a2a1c">
+            Drag a slider or type a value. Every figure on the
+            <span class="hidden lg:inline">right</span><span class="lg:hidden">outputs page</span>
+            recalculates instantly — <strong>nothing here is hard-coded</strong>.
+          </p>
+        </div>
+        <button class="btn lg:hidden shrink-0" id="closeDrawer"
+                style="border-color:#1b1512;color:#1b1512">Done ✕</button>
+      </div>
+      <p class="text-[11px] mt-2 mb-3 leading-snug" style="color:var(--muted)">
+        <span class="tag tag-v">🟢 VERIFIED</span> sourced fact ·
+        <span class="tag tag-d">🔵 DECISION</span> our choice ·
+        <span class="tag tag-e">🟡 ESTIMATE</span> our assumption.
+        The estimates are the fragile ones — push on those.
+        Focus any control to highlight every output it touches.
+      </p>
+    </div>
+    <div id="inputHost" class="space-y-3 px-3 lg:px-0 pb-6"></div>
+  </aside>
+
+  <!-- ================= OUTPUTS ================= -->
+  <main class="space-y-5 mt-5 lg:mt-0">
+
+    <!-- outputs orientation strip -->
+    <div class="panel p-3 flex items-start gap-3 flex-wrap" style="border-color:var(--line-strong)">
+      <div class="flex items-start gap-2.5 flex-1 min-w-[240px]">
+        <span class="stepnum stepnum-b mt-0.5">2</span>
+        <div class="text-[12px] leading-snug">
+          <strong class="strongnum">Every underlined figure below is clickable.</strong>
+          <span style="color:var(--muted)">It opens the formula, the live values substituted into it, where each
+          input came from, and what the figure feeds into.</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <button class="btn" id="demoTrace">Show me an example →</button>
+        <button class="btn" id="demoBreach">See the capacity limit</button>
+      </div>
+    </div>
+
+    <!-- A. CAPACITY -->
+    <section class="panel p-4">
+      <div class="flex items-baseline justify-between gap-3 flex-wrap">
+        <h2 class="sec">A · Capacity — the constraint that governs everything else</h2>
+        <div class="text-[11px]" style="color:var(--muted)">
+          ceiling <span class="metric font-semibold" data-id="ceiling" tabindex="0" role="button"></span> loom-days
+        </div>
+      </div>
+
+      <div id="breachBanner" class="hidden mt-3 p-3 rounded text-[13px] font-semibold leading-snug"
+           style="background:var(--bad-bg); border:1px solid var(--bad); color:var(--bad-ink)"></div>
+      <div id="breachFix" class="hidden mt-2 p-3 rounded text-[12px] leading-relaxed"
+           style="background:var(--raised); border:1px solid var(--bad)"></div>
+      <div id="tightBanner" class="hidden mt-3 p-2.5 rounded text-[12px] leading-snug"
+           style="background:var(--warn-bg); border:1px solid var(--warn); color:var(--text)"></div>
+
+      <div class="mt-3 capwrap" id="capBar" role="img" aria-label="Loom-day capacity allocation"></div>
+      <div class="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-3 text-[12px]">
+        <div><div class="lbl"><span class="swatch" style="background:var(--s-mel)"></span> Melbourne</div><span class="metric font-semibold" data-id="melLoomDays" tabindex="0" role="button"></span> <span style="color:var(--muted)">loom-days</span></div>
+        <div><div class="lbl"><span class="swatch" style="background:var(--s-ph)"></span> Domestic (consumed)</div><span class="metric font-semibold" data-id="phLoomDays" tabindex="0" role="button"></span> <span style="color:var(--muted)">loom-days</span></div>
+        <div><div class="lbl">Total used</div><span class="metric font-semibold" data-id="totalUsed" tabindex="0" role="button"></span></div>
+        <div>
+          <div class="lbl"><span class="swatch" style="background:var(--s-free)"></span> Headroom</div>
+          <span class="metric font-semibold" data-id="headroom" tabindex="0" role="button"></span>
+          <span class="cursor-help" title="Spare loom-days are not slack. They absorb reweaving a flawed panel, custom sizing, weaver rest days, and the weeks when rice farming takes priority.">ⓘ</span>
+        </div>
+      </div>
+      <p class="text-[11px] mt-3 leading-relaxed" style="color:var(--muted)">
+        Domestic is sized by <em>loom-day allocation</em>, not by a unit target — the existing business gets first
+        claim on the looms, and Melbourne is built from what is left. Rounding units to whole garments means the
+        <span class="metric" data-id="phAllocEcho" tabindex="0" role="button"></span> allocated loom-days actually consume
+        <span class="metric" data-id="phLoomDays2" tabindex="0" role="button"></span>. We display the consumed figure, not the target.
+      </p>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 pt-3 text-[12px]" style="border-top:1px solid var(--line)">
+        <div><div class="lbl">Melbourne share of ceiling</div><span class="metric font-semibold s-mel" data-id="melCapShare" tabindex="0" role="button"></span></div>
+        <div><div class="lbl">Headroom share</div><span class="metric font-semibold" data-id="headroomShare" tabindex="0" role="button"></span></div>
+        <div><div class="lbl">Buffer targeted by the allocation</div><span class="metric font-semibold" data-id="bufferTarget" tabindex="0" role="button"></span> <span style="color:var(--muted)">loom-days</span></div>
+        <div><div class="lbl">90-day Capsule gate</div><span class="metric font-semibold" data-id="gateUnits" tabindex="0" role="button"></span> <span style="color:var(--muted)">of <span class="num" id="gateOf"></span></span></div>
+      </div>
+    </section>
+
+    <!-- B. PRODUCT & PRICING -->
+    <section class="panel p-4">
+      <h2 class="sec">B · Product and pricing</h2>
+      <div class="overflow-x-auto mt-3">
+        <table class="w-full text-[12px] border-collapse">
+          <thead><tr class="text-left" style="color:var(--muted)">
+            <th class="py-1.5 pr-2 font-medium">Tier</th>
+            <th class="py-1.5 px-2 font-medium text-right">Loom-days</th>
+            <th class="py-1.5 px-2 font-medium text-right">COGS</th>
+            <th class="py-1.5 px-2 font-medium text-right">Base price</th>
+            <th class="py-1.5 px-2 font-medium text-right">Price <span id="mkEcho"></span></th>
+            <th class="py-1.5 px-2 font-medium text-right">GP / unit</th>
+            <th class="py-1.5 pl-2 font-medium text-right">Margin</th>
+          </tr></thead>
+          <tbody id="tierOut" class="align-middle"></tbody>
+        </table>
+      </div>
+      <p class="text-[11px] mt-2" style="color:var(--muted)">
+        Prices are the pre-markup base × (1 + markup), rounded to the nearest ₱50 for a clean sticker price.
+        COGS does not move with a price change — a weaver is still paid
+        <span class="metric" data-id="rateEcho" tabindex="0" role="button"></span> per loom-day — so every peso of
+        markup falls straight to gross margin. Drag markup to 0% to answer “what if you hadn’t raised prices?”.
+      </p>
+
+      <div class="mt-4 pt-3" style="border-top:1px solid var(--line)">
+        <div class="lbl mb-1.5">What the markup changes — computed live against a 0% counterfactual</div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-[11.5px] min-w-[320px]">
+            <thead><tr class="text-left" style="color:var(--muted)">
+              <th class="py-1 pr-2 font-medium">Line</th>
+              <th class="py-1 px-2 font-medium text-right">At 0% markup</th>
+              <th class="py-1 pl-2 font-medium text-right">At <span id="mkNow"></span></th>
+            </tr></thead>
+            <tbody id="markupCompareOut"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMPANY YEAR 1 -->
+    <section class="panel p-4">
+      <div class="flex items-baseline justify-between gap-3 flex-wrap">
+        <h2 class="sec">Company-wide, Year 1 — context, not the investment case</h2>
+        <span class="tag tag-d">SCOPE: NOT WHAT THE ASK BUYS</span>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mt-3 text-[12.5px]">
+        <div><div class="lbl">Company revenue</div><div class="text-base font-bold strongnum"><span class="metric" data-id="companyRevenue" tabindex="0" role="button"></span></div></div>
+        <div><div class="lbl">Company COGS</div><div class="text-base font-semibold"><span class="metric" data-id="companyCOGS" tabindex="0" role="button"></span></div></div>
+        <div><div class="lbl">Company gross profit</div><div class="text-base font-bold pos"><span class="metric" data-id="companyGP" tabindex="0" role="button"></span></div>
+          <div class="text-[10.5px]" style="color:var(--muted)"><span class="metric" data-id="companyGM" tabindex="0" role="button"></span></div></div>
+        <div><div class="lbl">Domestic share</div><div class="text-base font-bold s-ph"><span class="metric" data-id="phShare" tabindex="0" role="button"></span></div></div>
+        <div><div class="lbl">Melbourne share</div><div class="text-base font-bold s-mel"><span class="metric" data-id="melShare" tabindex="0" role="button"></span></div></div>
+      </div>
+      <div class="mt-3 h-[26px] flex gap-[2px] p-[2px] rounded" style="background:var(--raised); border:1px solid var(--line)" id="shareBar" role="img"></div>
+      <p class="text-[11.5px] mt-2 leading-relaxed" style="color:var(--body)" id="companyNote"></p>
+    </section>
+
+    <!-- market blocks -->
+    <section class="grid md:grid-cols-2 gap-5">
+      <div class="panel p-4">
+        <h2 class="sec">Melbourne — Year 1</h2>
+        <div class="mt-3 space-y-1.5 text-[12.5px]" id="melBlock">
+          <div class="flex justify-between"><span style="color:var(--muted)">Units</span><span class="metric font-semibold" data-id="melUnits" tabindex="0" role="button"></span></div>
+          <div class="flex justify-between"><span style="color:var(--muted)">Loom-days</span><span class="metric font-semibold" data-id="melLoomDays_b" tabindex="0" role="button"></span></div>
+          <div class="flex justify-between"><span style="color:var(--muted)">Revenue</span><span class="metric font-semibold" data-id="melRevenue" tabindex="0" role="button"></span></div>
+          <div class="flex justify-between"><span style="color:var(--muted)">COGS</span><span class="metric" data-id="melCOGS" tabindex="0" role="button"></span></div>
+          <div class="flex justify-between pt-1.5 hair" style="border-top:1px solid var(--line)">
+            <span style="color:var(--muted)">Gross profit</span><span class="metric font-bold pos" data-id="melGP" tabindex="0" role="button"></span></div>
+          <div class="flex justify-between"><span style="color:var(--muted)">Gross margin</span><span class="metric font-semibold" data-id="melGM" tabindex="0" role="button"></span></div>
+        </div>
+      </div>
+      <div class="panel p-4">
+        <h2 class="sec">Philippines domestic — Year 1 (existing, self-funding)</h2>
+        <div class="mt-3 space-y-1.5 text-[12.5px]">
+          <div class="flex justify-between"><span style="color:var(--muted)">Units (from allocation)</span><span class="metric font-semibold" data-id="phUnits" tabindex="0" role="button"></span></div>
+          <div class="flex justify-between"><span style="color:var(--muted)">Loom-days consumed</span><span class="metric font-semibold" data-id="phLoomDays_b" tabindex="0" role="button"></span></div>
+          <div class="flex justify-between"><span style="color:var(--muted)">Revenue</span><span class="metric font-semibold" data-id="phRevenue" tabindex="0" role="button"></span></div>
+          <div class="flex justify-between"><span style="color:var(--muted)">COGS</span><span class="metric" data-id="phCOGS" tabindex="0" role="button"></span></div>
+          <div class="flex justify-between pt-1.5" style="border-top:1px solid var(--line)">
+            <span style="color:var(--muted)">Gross profit</span><span class="metric font-bold pos" data-id="phGP" tabindex="0" role="button"></span></div>
+          <div class="flex justify-between"><span style="color:var(--muted)">Gross margin</span><span class="metric font-semibold" data-id="phGM" tabindex="0" role="button"></span></div>
+          <div class="flex justify-between text-[11.5px] pt-1.5" style="border-top:1px solid var(--line); color:var(--muted)">
+            <span>Tier split (rounded to whole garments)</span><span id="phSplit" class="font-medium"></span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- C. YEAR-ONE P&L -->
+    <section class="panel p-4">
+      <h2 class="sec">C · Year-one Melbourne P&amp;L</h2>
+      <p class="text-[11px] mt-1" style="color:var(--muted)">The programme funds the Melbourne pilot only. Domestic revenue does not appear here.</p>
+      <div class="overflow-x-auto mt-3">
+        <table class="w-full text-[12.5px]">
+          <tbody id="pnlOut"></tbody>
+        </table>
+      </div>
+      <figure class="m-0 mt-4">
+        <figcaption class="lbl mb-1">Revenue to operating profit, step by step</figcaption>
+        <div id="chartWaterfall" class="chartScroll"></div>
+      </figure>
+    </section>
+
+    <!-- D. THE ASK -->
+    <section class="panel p-4">
+      <h2 class="sec">D · The ask, and the reconciliation judges will ask about</h2>
+      <div class="grid sm:grid-cols-2 gap-4 mt-3">
+        <div>
+          <div class="space-y-1.5 text-[12.5px]" id="askOut"></div>
+        </div>
+        <div class="p-3 rounded" style="background:var(--raised); border:1px solid var(--line)">
+          <div class="lbl">Reconciliation</div>
+          <div class="grid grid-cols-2 gap-2 mt-2 text-[12.5px]">
+            <div><div class="lbl">Assets charged to the ask</div><span class="metric font-semibold" data-id="assetsEcho" tabindex="0" role="button"></span></div>
+            <div><div class="lbl">Assets charged to Year-1 P&amp;L</div><span class="metric font-semibold" data-id="amort" tabindex="0" role="button"></span></div>
+          </div>
+          <div class="mt-2 text-[12.5px]"><span class="lbl">Difference</span>
+            <span class="metric font-bold ml-1" data-id="reconGap" tabindex="0" role="button"></span></div>
+          <div class="mt-2.5 pt-2.5" style="border-top:1px solid var(--line)">
+            <div class="lbl">Payback on the programme ask</div>
+            <div class="text-base font-bold strongnum"><span class="metric" data-id="payback" tabindex="0" role="button"></span></div>
+            <div class="text-[10.5px]" style="color:var(--muted)" id="paybackNote"></div>
+          </div>
+          <p class="text-[11px] mt-2 leading-relaxed" style="color:var(--muted)">
+            The ask buys the full asset build in Year 1; the P&amp;L charges only one amortisation year of it.
+            The difference is <strong>spent cash serving Years 2 and 3</strong> — not a hole in the numbers.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- E. UNIT ECONOMICS -->
+    <section class="panel p-4">
+      <h2 class="sec">E · Unit economics</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3 text-[12.5px]">
+        <div><div class="lbl">CAC</div><div class="text-base font-bold"><span class="metric" data-id="cac" tabindex="0" role="button"></span></div>
+          <div class="text-[10.5px]" style="color:var(--muted)">acquisition spend ÷ Melbourne units</div></div>
+        <div><div class="lbl">Gross profit / unit</div><div class="text-base font-bold pos"><span class="metric" data-id="gpUnit" tabindex="0" role="button"></span></div></div>
+        <div><div class="lbl">GP : CAC</div><div class="text-base font-bold"><span class="metric" data-id="ratio" tabindex="0" role="button"></span></div></div>
+        <div><div class="lbl">Break-even sell-through</div><div class="text-base font-bold"><span class="metric" data-id="breakeven" tabindex="0" role="button"></span></div>
+          <div class="text-[10.5px]" style="color:var(--muted)">where operating profit crosses zero</div></div>
+      </div>
+      <div class="mt-3 text-[11px]" style="color:var(--muted)">
+        Acquisition spend totals <span class="metric" data-id="acqTotal" tabindex="0" role="button"></span>.
+        Double the units and CAC halves — it is spend ÷ units, not a per-unit constant.
+      </div>
+    </section>
+
+    <!-- F. WEAVER ECONOMICS -->
+    <section class="panel p-4">
+      <h2 class="sec">F · Weaver economics — both markets counted</h2>
+      <div class="grid sm:grid-cols-3 gap-3 mt-3 text-[12.5px]">
+        <div><div class="lbl">Total labour cost</div><div class="text-base font-bold"><span class="metric" data-id="labour" tabindex="0" role="button"></span></div></div>
+        <div><div class="lbl">Income per weaver / year</div><div class="text-base font-bold pos"><span class="metric" data-id="perWeaver" tabindex="0" role="button"></span></div></div>
+        <div><div class="lbl">Days worked</div><div class="text-base font-bold"><span class="metric" data-id="daysWorked" tabindex="0" role="button"></span>
+          <span class="text-[12px] font-normal" style="color:var(--muted)">of <span class="metric" data-id="daysAvail" tabindex="0" role="button"></span> available</span></div>
+          <div class="text-[10.5px]" style="color:var(--muted)">personal utilisation <span class="metric" data-id="personalUtil" tabindex="0" role="button"></span></div></div>
+      </div>
+      <div class="mt-3 overflow-x-auto">
+        <table class="w-full text-[12px]">
+          <thead><tr class="text-left" style="color:var(--muted)">
+            <th class="py-1 pr-2 font-medium">Benchmark (per day)</th>
+            <th class="py-1 px-2 font-medium text-right">Rate</th>
+            <th class="py-1 pl-2 font-medium text-right">Our rate vs it</th>
+          </tr></thead>
+          <tbody id="benchOut"></tbody>
+        </table>
+      </div>
+      <p class="text-[11.5px] mt-3 leading-relaxed p-2.5 rounded" style="background:var(--ok-bg); border:1px solid rgba(76,122,53,.45)">
+        This is <strong>supplementary income earned alongside farming, not a full salary.</strong> Weaving fits into the
+        weeks rice farming leaves open, which is exactly why loom-days per weaver is capped well below a working year.
+      </p>
+    </section>
+
+    <!-- G. FIVE YEARS -->
+    <section class="panel p-4">
+      <div class="flex items-baseline justify-between gap-3 flex-wrap">
+        <h2 class="sec">G · Five years, two markets, reconciled</h2>
+        <div class="text-[11px] flex items-center gap-3" style="color:var(--muted)">
+          <span><span class="swatch" style="background:var(--s-mel)"></span> Melbourne</span>
+          <span><span class="swatch" style="background:var(--s-ph)"></span> Philippines domestic</span>
+        </div>
+      </div>
+      <div class="overflow-x-auto mt-3">
+        <table class="w-full text-[11.5px]">
+          <thead><tr class="text-left align-bottom" style="color:var(--muted)">
+            <th class="py-1.5 pr-2 font-medium">Yr</th>
+            <th class="py-1.5 px-2 font-medium text-right">Weavers</th>
+            <th class="py-1.5 px-2 font-medium text-right">Ceiling</th>
+            <th class="py-1.5 px-2 font-medium text-right">Mel units</th>
+            <th class="py-1.5 px-2 font-medium text-right">Mel revenue</th>
+            <th class="py-1.5 px-2 font-medium text-right">PH units</th>
+            <th class="py-1.5 px-2 font-medium text-right">PH revenue</th>
+            <th class="py-1.5 px-2 font-medium text-right">Used</th>
+            <th class="py-1.5 px-2 font-medium text-right">Util.</th>
+            <th class="py-1.5 px-2 font-medium text-right">Mel op profit</th>
+            <th class="py-1.5 pl-2 font-medium text-right">Company rev</th>
+          </tr></thead>
+          <tbody id="yearOut"></tbody>
+        </table>
+      </div>
+      <div id="bindNote" class="mt-2 text-[11.5px] p-2.5 rounded leading-snug"
+           style="background:var(--warn-bg); border:1px solid var(--warn)"></div>
+
+      <div class="grid lg:grid-cols-2 gap-5 mt-4">
+        <figure class="m-0">
+          <figcaption class="lbl mb-1">Revenue by market, with weaver recruitment marked</figcaption>
+          <div id="chartRevenue" class="chartScroll"></div>
+        </figure>
+        <figure class="m-0">
+          <figcaption class="lbl mb-1">Loom-day utilisation against the ceiling each year</figcaption>
+          <div id="chartUtil" class="chartScroll"></div>
+        </figure>
+      </div>
+
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-4 pt-3" style="border-top:1px solid var(--line)">
+        <div><div class="lbl">Cumulative Melbourne revenue</div><div class="text-base font-bold strongnum"><span class="metric" data-id="cumMelRevenue" tabindex="0" role="button"></span></div></div>
+        <div><div class="lbl">Cumulative Melbourne op profit</div><div class="text-base font-bold pos"><span class="metric" data-id="cumMelOpProfit" tabindex="0" role="button"></span></div>
+          <div class="text-[10.5px]" style="color:var(--muted)"><span class="metric" data-id="cumMultiple" tabindex="0" role="button"></span> the programme ask</div></div>
+        <div><div class="lbl">Cumulative domestic revenue</div><div class="text-base font-bold strongnum"><span class="metric" data-id="cumPhRevenue" tabindex="0" role="button"></span></div>
+          <div class="text-[10.5px]" style="color:var(--muted)">context only, not the ask</div></div>
+        <div><div class="lbl">Cumulative company revenue</div><div class="text-base font-bold strongnum"><span class="metric" data-id="cumCompanyRevenue" tabindex="0" role="button"></span></div>
+          <div class="text-[10.5px]" style="color:var(--muted)">GP <span class="metric" data-id="cumCompanyGP" tabindex="0" role="button"></span></div></div>
+      </div>
+
+      <div class="mt-4 pt-3" style="border-top:1px solid var(--line)">
+        <div class="lbl mb-1.5">Weaver livelihood across the five years</div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-[11.5px]"><tbody id="weaverYearOut"></tbody></table>
+        </div>
+        <p class="text-[11.5px] mt-2 leading-relaxed p-2.5 rounded" id="weaverNote"></p>
+      </div>
+    </section>
+
+    <!-- H. SENSITIVITY -->
+    <section class="panel p-4">
+      <h2 class="sec">H · Sensitivity — all three cases at once, not a toggle</h2>
+      <p class="text-[11px] mt-1" style="color:var(--muted)">
+        The whole Melbourne mix scales with sell-through relative to the base rate. The gate is
+        <span class="metric" data-id="gateUnits" tabindex="0" role="button"></span> of
+        <span class="num">220</span> Capsule units in 90 days — units, not price.
+      </p>
+      <div class="grid sm:grid-cols-3 gap-3 mt-3" id="sensOut"></div>
+      <div class="grid lg:grid-cols-2 gap-5 mt-4">
+        <figure class="m-0">
+          <figcaption class="lbl mb-1">Operating profit by sell-through, against zero</figcaption>
+          <div id="chartSens" class="chartScroll"></div>
+        </figure>
+        <div class="p-3 rounded self-start" style="background:var(--raised); border:1px solid var(--line)">
+          <div class="lbl">Break-even sell-through</div>
+          <div class="text-2xl font-bold strongnum mt-0.5"><span class="metric" data-id="breakeven" tabindex="0" role="button"></span></div>
+          <p class="text-[11.5px] mt-2 leading-relaxed" style="color:var(--body)" id="beNote"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- I. ROBUSTNESS -->
+    <section class="panel p-4">
+      <h2 class="sec">I · Robustness — what if we are wrong</h2>
+
+      <!-- tornado -->
+      <div class="mt-3">
+        <div class="flex items-baseline justify-between gap-3 flex-wrap">
+          <div class="lbl">Which assumption moves the answer most — each input flexed on its own</div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <label class="text-[11px]" style="color:var(--muted)" for="tMetric">Measure</label>
+            <select id="tMetric" class="text-[11px] px-1.5 py-1 rounded"
+                    style="background:var(--raised); border:1px solid var(--line); color:var(--text)"></select>
+            <label class="text-[11px]" style="color:var(--muted)" for="tSpread">Flex ±</label>
+            <input type="number" id="tSpread" value="20" min="1" max="60" step="1" class="!w-[62px]" aria-label="Tornado flex percent">
+            <span class="text-[11px]" style="color:var(--muted)">%</span>
+          </div>
+        </div>
+        <div id="chartTornado" class="chartScroll mt-2"></div>
+        <p class="text-[11px] mt-1.5 leading-relaxed" style="color:var(--muted)" id="tornadoNote"></p>
+      </div>
+
+      <!-- two-way grid -->
+      <div class="mt-5 pt-4" style="border-top:1px solid var(--line)">
+        <div class="lbl">The two most fragile estimates together — loom-days per weaver against sell-through</div>
+        <p class="text-[11px] mt-1 leading-relaxed" style="color:var(--muted)">
+          Each cell is Year-1 Melbourne operating profit at that combination. Crimson cells cannot be delivered at
+          all: the plan needs more loom-days than that weaver capacity provides, whatever the demand.
+        </p>
+        <div class="overflow-x-auto mt-2">
+          <table class="w-full text-[11px] min-w-[460px]" id="gridOut"></table>
+        </div>
+        <div class="flex items-center gap-3 mt-2 text-[10.5px] flex-wrap" style="color:var(--muted)">
+          <span><span class="swatch" style="background:var(--crimson)"></span> undeliverable</span>
+          <span><span class="swatch" style="background:var(--s-ph)"></span> loss</span>
+          <span><span class="swatch" style="background:rgba(76,122,53,.35)"></span> → <span class="swatch" style="background:var(--s-free)"></span> profit, low to high</span>
+          <span>◻ outlined cell = current assumptions</span>
+        </div>
+      </div>
+
+      <!-- monte carlo -->
+      <div class="mt-5 pt-4" style="border-top:1px solid var(--line)">
+        <div class="flex items-baseline justify-between gap-3 flex-wrap">
+          <div class="lbl">Monte Carlo — all the fragile estimates moving at once</div>
+          <div class="flex items-center gap-2">
+            <button class="btn" id="mcRun">Run simulation</button>
+          </div>
+        </div>
+
+        <div class="mt-2 p-3 rounded text-[11.5px] leading-relaxed"
+             style="background:var(--warn-bg); border:1px solid var(--warn)">
+          <strong>Read this before reading the result.</strong> The spread used here is
+          <strong>not sourced</strong> — no variance data exists for any of these inputs, so we chose a symmetric
+          ± band around each current value and sampled the inputs independently. Correlations between them are not
+          modelled, and neither is demand risk. This tells you <strong>how much the answer moves when the fragile
+          estimates move together</strong>. It is <strong>not</strong> a probability of commercial success, and we
+          would not present it as one. The draw is seeded, so the same settings always give the same numbers.
+        </div>
+
+        <div id="mcStale" class="hidden mt-2 text-[11.5px] p-2 rounded"
+             style="background:var(--raised); border:1px solid var(--line-strong)">
+          Inputs have changed since this simulation ran — the figures below are stale. Run it again.
+        </div>
+
+        <div id="mcOut" class="mt-3"></div>
+      </div>
+    </section>
+
+    <!-- FIGURE INDEX -->
+    <section class="panel p-4">
+      <h2 class="sec">Every headline figure, in one place</h2>
+      <p class="text-[11px] mt-1" style="color:var(--muted)">
+        Each line is computed from the inputs, not transcribed. This is the model of record — anything presented
+        elsewhere is derived from here.
+      </p>
+      <div class="overflow-x-auto mt-3">
+        <table class="w-full text-[11.5px] min-w-[420px]">
+          <thead><tr class="text-left" style="color:var(--muted)">
+            <th class="py-1.5 pr-2 font-medium">Topic</th>
+            <th class="py-1.5 pl-2 font-medium">Live figures</th>
+          </tr></thead>
+          <tbody id="figureIndexOut"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- I. ASSUMPTION AUDIT -->
+    <section class="panel p-4">
+      <h2 class="sec">J · Assumption audit — every input, and what breaks if it is wrong</h2>
+      <p class="text-[11px] mt-1" style="color:var(--muted)">Sorted by provenance: estimates first, because those are the ones that can be wrong.</p>
+      <div class="overflow-x-auto mt-3">
+        <table class="w-full text-[11.5px]">
+          <thead><tr class="text-left align-bottom" style="color:var(--muted)">
+            <th class="py-1.5 pr-2 font-medium">Input</th>
+            <th class="py-1.5 px-2 font-medium">Tag</th>
+            <th class="py-1.5 px-2 font-medium text-right">Default</th>
+            <th class="py-1.5 px-2 font-medium text-right">Current</th>
+            <th class="py-1.5 px-2 font-medium">Source</th>
+            <th class="py-1.5 pl-2 font-medium">What breaks if this is wrong</th>
+          </tr></thead>
+          <tbody id="auditOut"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- limitations -->
+    <section class="panel p-4">
+      <h2 class="sec">Scope and limitations</h2>
+      <p class="text-[12px] mt-2 leading-relaxed">
+        <strong>Scope.</strong> The programme ask funds the <strong>Melbourne pilot only</strong>. The Philippines
+        domestic business is Kandama’s existing, self-funding operation and appears here for capacity context.
+        The ask does not buy company-wide revenue.
+      </p>
+      <p class="text-[12px] mt-2 leading-relaxed italic" style="color:var(--muted)">
+        The core model is deterministic. The Monte Carlo section varies the fragile estimates simultaneously, but the
+        spread it uses is our own choice rather than measured variance, the inputs are sampled independently, and it
+        does not model demand risk — so it shows how much the answer moves, not how likely the plan is to succeed.
+        The model does not cover working-capital timing within the year,
+        tax, FX movement inside a drop, or inventory carried between years. Unsold pieces are treated as numbered
+        inventory that sells into the following year rather than as a write-off. Loom-days per garment and loom-days
+        per weaver are the team’s estimates and are the two inputs most likely to be wrong; Gate 1 in October 2026
+        exists to measure both before any edition is promised.
+      </p>
+    </section>
+
+    <!-- self-test -->
+    <section class="panel p-4">
+      <div class="flex items-center justify-between gap-3 flex-wrap">
+        <h2 class="sec">Acceptance check (runs against the defaults)</h2>
+        <button class="btn" id="testBtn">Run checks</button>
+      </div>
+      <div id="testOut" class="mt-2 text-[11.5px] mono space-y-0.5"></div>
+    </section>
+
+    <div class="h-8"></div>
+  </main>
+</div>
+
+<!-- ================= TRACE PANEL ================= -->
+<aside id="tracePanel" class="fixed top-0 right-0 bottom-0 z-[70] w-[min(94vw,430px)] overflow-y-auto p-4"
+       style="background:var(--panel); border-left:1px solid var(--clay)" aria-live="polite">
+  <div class="flex items-start justify-between gap-2">
+    <div>
+      <div class="lbl">Show the working</div>
+      <h3 id="tTitle" class="font-bold text-[15px] leading-tight"></h3>
+    </div>
+    <button class="btn" id="tClose">✕</button>
+  </div>
+  <div class="mt-3 text-2xl font-bold" id="tValue"></div>
+
+  <div class="mt-4">
+    <div class="lbl">Formula</div>
+    <pre class="mono text-[11.5px] mt-1 p-2.5 rounded whitespace-pre-wrap break-words" id="tFormula"
+         style="background:var(--raised); border:1px solid var(--line)"></pre>
+  </div>
+  <div class="mt-3">
+    <div class="lbl">With the current values substituted in</div>
+    <pre class="mono text-[11.5px] mt-1 p-2.5 rounded whitespace-pre-wrap break-words" id="tSubst"
+         style="background:var(--raised); border:1px solid var(--line)"></pre>
+  </div>
+  <div class="mt-3">
+    <div class="lbl">Inputs it depends on</div>
+    <div id="tInputs" class="mt-1 space-y-1.5"></div>
+    <button class="btn mt-2 w-full" id="tDep">Highlight everything these inputs touch</button>
+  </div>
+  <div class="mt-3">
+    <div class="lbl">What it feeds into</div>
+    <div id="tFeeds" class="mt-1 flex flex-wrap gap-1.5"></div>
+  </div>
+  <div class="h-10"></div>
+</aside>
+
+<!-- ================= DIFF MODAL ================= -->
+<div id="diffModal" class="hidden fixed inset-0 z-[80] bg-black/70 p-4 overflow-y-auto">
+  <div class="panel max-w-lg mx-auto mt-10 p-4">
+    <div class="flex items-center justify-between">
+      <h3 class="font-bold text-[15px]">Your scenario vs the deck’s base case</h3>
+      <button class="btn" id="diffClose">✕</button>
+    </div>
+    <div id="diffBody" class="mt-3 text-[12px] space-y-1.5"></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* =======================================================================
+   1 · INPUT REGISTRY — defaults, ranges, provenance, and the audit copy.
+   ======================================================================= */
+const TIERS = [
+  { key:'capsule',     name:'Capsule'     },
+  { key:'signature',   name:'Signature'   },
+  { key:'masterpiece', name:'Masterpiece' }
+];
+
+const DEFAULTS = {
+  weavers:29, looms:18, loomDaysPerWeaver:110, weaverRate:650,
+  ld_capsule:3,  ld_signature:16, ld_masterpiece:22,
+  cogs_capsule:6500, cogs_signature:18000, cogs_masterpiece:45000,
+  base_capsule:15000, base_signature:48000, base_masterpiece:150000,
+  markup:15,
+  mel_capsule:220, mel_signature:36, mel_masterpiece:4,
+  phAlloc:1500, mix_capsule:90, mix_signature:9, mix_masterpiece:1,
+  assets:1240000, amortYears:3, opSpend:1510000, contingency:150000, workingCapital:1200000,
+  acq_media:150000, acq_creator:210000, acq_community:150000, acq_popup:120000,
+  weaversY2:29, weaversY3:45, weaversY4:55, weaversY5:65,
+  melTargetY2:300, melTargetY3:460, melTargetY4:560, melTargetY5:650,
+  phGrowth:5, opMarginY2:35, opMarginY3:38, opMarginY4:39, opMarginY5:40,
+  sellThrough:80, fxAud:43, fxUsd:61.7,
+  mcSpread:20, mcTrials:2000
+};
+
+// tag: V verified · D decision · E estimate
+const IN = [
+  // ---- capacity
+  {k:'weavers', g:'Production capacity', label:'Weavers, Year 1', min:10, max:60, step:1, tag:'V',
+   src:'Case brief', breaks:'The whole ceiling scales off this. Fewer weavers, fewer loom-days, smaller edition.'},
+  {k:'looms', g:'Production capacity', label:'Looms', min:5, max:40, step:1, tag:'V',
+   src:'Case brief — display only, not in the maths', breaks:'Nothing computationally. Shown because judges ask, and because looms cap how many weavers can work at once in practice.'},
+  {k:'loomDaysPerWeaver', g:'Production capacity', label:'Loom-days per weaver per year', min:60, max:250, step:1, tag:'E',
+   src:'Team estimate — weaving fits around rice farming',
+   breaks:'The single most load-bearing estimate in the model. At 80 rather than 110 the ceiling drops to 2,320 loom-days and the plan does not fit.'},
+  {k:'weaverRate', g:'Production capacity', label:'Weaver rate, ₱ per loom-day', min:400, max:1200, step:10, tag:'D',
+   src:'CAR agri minimum ₱480, non-agri ₱505, poverty line ₱435',
+   breaks:'Drives weaver income and, through COGS, our margin claim. Raising it is the honest lever; it should visibly cost us.'},
+  // ---- pricing
+  {k:'markup', g:'Product and pricing', label:'Markup on base price, %', min:0, max:40, step:1, tag:'D', unit:'%',
+   src:'Team decision — Melbourne positioning',
+   breaks:'At 0% prices fall to the published base and gross margin falls with them. This is the "why did you raise prices?" answer.'},
+  // ---- Melbourne allocation
+  {k:'mel_capsule', g:'Melbourne allocation, Year 1', label:'Capsule units', min:0, max:800, step:1, tag:'E',
+   src:'Demand-led target', breaks:'Push this up and capacity breaches. It is the fastest way to see the ceiling bind.'},
+  {k:'mel_signature', g:'Melbourne allocation, Year 1', label:'Signature units', min:0, max:200, step:1, tag:'E',
+   src:'Demand-led target', breaks:'16 loom-days each, so this consumes capacity fast for modest volume.'},
+  {k:'mel_masterpiece', g:'Melbourne allocation, Year 1', label:'Masterpiece units', min:0, max:30, step:1, tag:'E',
+   src:'Demand-led target', breaks:'Highest revenue per unit but 22 loom-days each. A handful is deliberate.'},
+  // ---- domestic
+  {k:'phAlloc', g:'Philippines domestic', label:'Domestic loom-day allocation', min:0, max:3190, step:10, tag:'D',
+   src:'Existing business gets first claim on the looms',
+   breaks:'Cut this and Melbourne gets more room, but Kandama’s existing customers get less. That trade-off is real and should stay visible.'},
+  {k:'mix_capsule', g:'Philippines domestic', label:'Domestic mix — Capsule %', min:0, max:100, step:1, tag:'E', unit:'%',
+   src:'Team estimate — domestic skews to the everyday piece', breaks:'Mix changes blended loom-days per unit, so the same allocation buys a different number of garments.'},
+  {k:'mix_signature', g:'Philippines domestic', label:'Domestic mix — Signature %', min:0, max:100, step:1, tag:'E', unit:'%',
+   src:'Team estimate', breaks:'A richer domestic mix consumes more loom-days per unit and squeezes Melbourne.'},
+  {k:'mix_masterpiece', g:'Philippines domestic', label:'Domestic mix — Masterpiece %', min:0, max:100, step:1, tag:'E', unit:'%',
+   src:'Team estimate', breaks:'Small share, large loom-day cost per piece.'},
+  // ---- programme
+  {k:'assets', g:'Programme cost and the ask', label:'Assets (film, asset trip, store rebuild, registry)', min:0, max:4000000, step:10000, tag:'D',
+   src:'Team decision', breaks:'Raises the ask in full but the P&L only by one amortisation year. This is the gap the reconciliation panel explains.'},
+  {k:'amortYears', g:'Programme cost and the ask', label:'Amortisation period, years', min:1, max:10, step:1, tag:'D',
+   src:'Team decision', breaks:'Shorter amortisation charges more to Year 1 and cuts operating profit without changing the cash ask.'},
+  {k:'opSpend', g:'Programme cost and the ask', label:'Operating spend (events, pop-up, media, creators, freight)', min:0, max:4000000, step:10000, tag:'D',
+   src:'Team decision', breaks:'Straight hit to operating profit and to the break-even sell-through.'},
+  {k:'contingency', g:'Programme cost and the ask', label:'Contingency', min:0, max:1000000, step:10000, tag:'D',
+   src:'Team decision', breaks:'Removing it flatters operating profit and removes the buffer. We charge it deliberately.'},
+  {k:'workingCapital', g:'Programme cost and the ask', label:'Working capital, one drop of inventory', min:0, max:4000000, step:10000, tag:'D',
+   src:'Team decision', breaks:'Sits in the facility, never in the P&L. It is recovered as the drop sells.'},
+  // ---- acquisition
+  {k:'acq_media', g:'Acquisition spend (for CAC)', label:'Paid media', min:0, max:1000000, step:10000, tag:'E',
+   src:'Team estimate', breaks:'CAC moves directly. The GP:CAC ratio is the headline it feeds.'},
+  {k:'acq_creator', g:'Acquisition spend (for CAC)', label:'Creator flight', min:0, max:1000000, step:10000, tag:'E',
+   src:'Team estimate', breaks:'Largest single acquisition line, so the most sensitive part of CAC.'},
+  {k:'acq_community', g:'Acquisition spend (for CAC)', label:'Community activations', min:0, max:1000000, step:10000, tag:'E',
+   src:'Team estimate', breaks:'CAC moves directly.'},
+  {k:'acq_popup', g:'Acquisition spend (for CAC)', label:'Pop-up staffing share', min:0, max:1000000, step:10000, tag:'E',
+   src:'Team estimate — the split of pop-up cost between staffing and venue is a judgement call',
+   breaks:'Allocate more of the pop-up to venue instead and CAC falls without anything real changing. That is why it is tagged an estimate.'},
+  // ---- growth (feeds the five-year view)
+  {k:'sellThrough', g:'Growth and projection', label:'Sell-through rate, %', min:30, max:100, step:1, tag:'E', unit:'%',
+   src:'Team estimate', breaks:'Drives the February gate and the sensitivity panel. Below 60% the plan pauses expansion rather than continuing. It does not silently rescale the Year-1 unit target.'},
+  {k:'weaversY2', g:'Growth and projection', label:'Weavers, Year 2', min:10, max:120, step:1, tag:'E',
+   src:'No new hires — a sellable, export-grade weaver is a multi-year apprenticeship, not a short course',
+   breaks:'This is why Year 2 maxes out at 97.8%. If weavers could be added inside a year, the whole Year-3 recruitment argument would collapse — and so would the case for treating 3,190 as a hard cap.'},
+  {k:'weaversY3', g:'Growth and projection', label:'Weavers, Year 3', min:10, max:120, step:1, tag:'E', src:'Recruitment schedule (+16, recruited from Year 1)', breaks:'Year 2 runs at 97.8% utilisation; if these 16 are not trained in time, Year 3 cannot be delivered.'},
+  {k:'weaversY4', g:'Growth and projection', label:'Weavers, Year 4', min:10, max:120, step:1, tag:'E', src:'Recruitment schedule', breaks:'Year-4 ceiling. Under-recruit and the Melbourne target is undeliverable.'},
+  {k:'weaversY5', g:'Growth and projection', label:'Weavers, Year 5', min:10, max:120, step:1, tag:'E', src:'Recruitment schedule', breaks:'Year-5 ceiling.'},
+  {k:'melTargetY2', g:'Growth and projection', label:'Melbourne units, Year 2', min:0, max:2000, step:10, tag:'E', src:'Team estimate', breaks:'The year the cap binds. Raising it breaches capacity before Year-3 recruitment lands.'},
+  {k:'melTargetY3', g:'Growth and projection', label:'Melbourne units, Year 3', min:0, max:2000, step:10, tag:'E', src:'Team estimate', breaks:'Paired with the +16 weavers; the two must move together.'},
+  {k:'melTargetY4', g:'Growth and projection', label:'Melbourne units, Year 4', min:0, max:2000, step:10, tag:'E', src:'Team estimate', breaks:'Paired with +10 weavers.'},
+  {k:'melTargetY5', g:'Growth and projection', label:'Melbourne units, Year 5', min:0, max:2000, step:10, tag:'E', src:'Team estimate', breaks:'Paired with +10 weavers.'},
+  {k:'phGrowth', g:'Growth and projection', label:'Philippines organic growth, % / year', min:0, max:30, step:1, tag:'E', unit:'%',
+   src:'Team estimate', breaks:'Compounds against a fixed ceiling, so faster domestic growth crowds Melbourne out.'},
+  {k:'opMarginY2', g:'Growth and projection', label:'Melbourne operating margin, Year 2 %', min:0, max:80, step:1, tag:'E', unit:'%', src:'Team estimate', breaks:'Years 2–5 use a margin ramp rather than an itemised P&L. Wrong margins move the cumulative multiple on the ask.'},
+  {k:'opMarginY3', g:'Growth and projection', label:'Melbourne operating margin, Year 3 %', min:0, max:80, step:1, tag:'E', unit:'%', src:'Team estimate', breaks:'As above.'},
+  {k:'opMarginY4', g:'Growth and projection', label:'Melbourne operating margin, Year 4 %', min:0, max:80, step:1, tag:'E', unit:'%', src:'Team estimate', breaks:'As above.'},
+  {k:'opMarginY5', g:'Growth and projection', label:'Melbourne operating margin, Year 5 %', min:0, max:80, step:1, tag:'E', unit:'%', src:'Team estimate', breaks:'As above.'},
+  {k:'fxAud', g:'Growth and projection', label:'FX, A$1 = ₱', min:20, max:80, step:0.1, tag:'V', src:'July 2026', breaks:'Display only. It converts figures for an Australian reader; it does not change the peso model.'},
+  {k:'fxUsd', g:'Growth and projection', label:'FX, US$1 = ₱', min:30, max:100, step:0.1, tag:'V', src:'July 2026', breaks:'Display only — switches the currency toggle to US dollars. It does not change the peso model.'},
+  {k:'mcSpread', g:'Robustness settings', label:'Monte Carlo spread, ± %', min:5, max:50, step:1, tag:'E', unit:'%',
+   src:'Not sourced — a width we chose, because no variance data exists for these inputs',
+   breaks:'This is the most arguable input on the page. It sets how wide the simulated uncertainty is, and it is our invention rather than a measurement. A wider spread makes the outcome range look worse; a narrower one flatters it. Read the simulation as "how much does the answer move", never as a probability of success.'},
+  {k:'mcTrials', g:'Robustness settings', label:'Monte Carlo trials', min:200, max:20000, step:100, tag:'D',
+   src:'Analysis setting',
+   breaks:'Only affects the precision of the simulation, not the model. The random draw is seeded, so the same settings always produce the same result.'}
+];
+// tier table inputs live in their own editable table, but still need audit rows:
+const TIER_IN = [];
+TIERS.forEach(t=>{
+  TIER_IN.push(
+    {k:'ld_'+t.key, g:'Product and pricing', label:t.name+' — loom-days', min:1, max:60, step:1, tag:'E',
+     src:'Team estimate', breaks:'If the '+t.name+' piece really takes longer, the edition shrinks. Gate 1 in October exists to count real loom hours before any edition is promised.'},
+    {k:'cogs_'+t.key, g:'Product and pricing', label:t.name+' — COGS ₱', min:0, max:200000, step:500, tag:'E',
+     src:'Team estimate', breaks:'Gross margin moves directly, and with it the whole profit claim.'},
+    {k:'base_'+t.key, g:'Product and pricing', label:t.name+' — base price ₱ (pre-markup)', min:0, max:400000, step:500, tag:'D',
+     src:'Published pre-markup pricing', breaks:'Every revenue figure scales off this. The markup slider multiplies it.'}
+  );
+});
+const ALL_IN = IN.concat(TIER_IN);
+const INBY = {}; ALL_IN.forEach(i=>INBY[i.k]=i);
+const TAGNAME = {V:'🟢 VERIFIED', D:'🔵 DECISION', E:'🟡 ESTIMATE'};
+const TAGCLS  = {V:'tag-v', D:'tag-d', E:'tag-e'};
+
+/* =======================================================================
+   2 · STATE
+   ======================================================================= */
+let S = Object.assign({}, DEFAULTS);
+let AUD = 0, M = null;
+
+const PRESETS = {
+  base: ()=> Object.assign({}, DEFAULTS),
+  bear: ()=> Object.assign({}, DEFAULTS, {
+    sellThrough:60, loomDaysPerWeaver:90, weaverRate:750,
+    mel_capsule:Math.round(220*0.75), mel_signature:Math.round(36*0.75), mel_masterpiece:Math.round(4*0.75)
+  }),
+  bull: ()=> Object.assign({}, DEFAULTS, {
+    sellThrough:95, loomDaysPerWeaver:120,
+    mel_capsule:Math.round(220*1.2), mel_signature:Math.round(36*1.2), mel_masterpiece:Math.round(4*1.2)
+  }),
+  nomarkup: ()=> Object.assign({}, DEFAULTS, { markup:0 })
+};
+
+/* =======================================================================
+   3 · FORMATTERS
+   ======================================================================= */
+// 0 = peso, 1 = Australian dollar, 2 = US dollar
+const CURS = [ ()=>({sym:'₱',   div:1}),
+               ()=>({sym:'A$',  div:S.fxAud}),
+               ()=>({sym:'US$', div:S.fxUsd}) ];
+const cur = ()=> CURS[AUD]();
+function grp(n,d){ return Number(n).toLocaleString('en-US',{minimumFractionDigits:d||0,maximumFractionDigits:d||0}); }
+function money(n){
+  const c = cur(); const v = n / c.div; const a = Math.abs(v);
+  const sign = v < 0 ? '−' : '';
+  // Round half-up explicitly: (8.045).toFixed(2) gives "8.04" in float, which would
+  // print company COGS as ₱8.04M against the deck's ₱8.05M. Judges spot that.
+  if (a >= 1e6) return sign + c.sym + (Math.round(a/1e4)/100).toFixed(2) + 'M';
+  return sign + c.sym + grp(Math.round(a));
+}
+function moneyFull(n){ const c = cur(); return (n<0?'−':'') + c.sym + grp(Math.abs(n/c.div)); }
+function pct(n,d){ return (n*100).toFixed(d===undefined?1:d) + '%'; }
+function fmt(v, type){
+  if (type==='peso')  return money(v);
+  if (type==='pct')   return pct(v);
+  if (type==='num')   return grp(Math.round(v));
+  if (type==='num1')  return grp(v,1);
+  if (type==='x')     return v.toFixed(1) + '×';
+  if (type==='signed'){ return (v>=0?'+':'') + money(v); }
+  return String(v);
+}
+
+/* =======================================================================
+   4 · THE CALCULATION ENGINE  (§3 of the brief, in order)
+   ======================================================================= */
+function compute(s){
+  const m = {};
+  const ld   = { capsule:s.ld_capsule, signature:s.ld_signature, masterpiece:s.ld_masterpiece };
+  const cogs = { capsule:s.cogs_capsule, signature:s.cogs_signature, masterpiece:s.cogs_masterpiece };
+  const base = { capsule:s.base_capsule, signature:s.base_signature, masterpiece:s.base_masterpiece };
+  // Prices are rounded to the nearest ₱50 for a clean sticker price, exactly as
+  // the derivation doc states. At 15% the rounding is a no-op (17,250 / 55,200 /
+  // 172,500 are already multiples of 50); it bites at other markups — e.g. the
+  // conservative Capsule alternative, 13.3% → ₱16,995 → ₱17,000.
+  const price = {};
+  TIERS.forEach(t => price[t.key] = Math.round(base[t.key] * (1 + s.markup/100) / 50) * 50);
+  m.ld = ld; m.cogs = cogs; m.base = base; m.price = price;
+
+  // 3.1 capacity ceiling
+  m.ceiling = s.weavers * s.loomDaysPerWeaver;
+
+  // 3.2 Melbourne block
+  const melU = { capsule:s.mel_capsule, signature:s.mel_signature, masterpiece:s.mel_masterpiece };
+  m.melU = melU;
+  m.melUnits    = melU.capsule + melU.signature + melU.masterpiece;
+  m.melLoomDays = TIERS.reduce((a,t)=> a + melU[t.key]*ld[t.key], 0);
+  m.melRevenue  = TIERS.reduce((a,t)=> a + melU[t.key]*price[t.key], 0);
+  m.melCOGS     = TIERS.reduce((a,t)=> a + melU[t.key]*cogs[t.key], 0);
+  m.melGP       = m.melRevenue - m.melCOGS;
+  m.melGM       = m.melRevenue ? m.melGP / m.melRevenue : 0;
+
+  // 3.3 Philippines domestic block — sized by loom-day allocation
+  const mix = { capsule:s.mix_capsule/100, signature:s.mix_signature/100, masterpiece:s.mix_masterpiece/100 };
+  m.mix = mix;
+  m.mixSum = s.mix_capsule + s.mix_signature + s.mix_masterpiece;
+  m.blended = TIERS.reduce((a,t)=> a + mix[t.key]*ld[t.key], 0);
+  m.phTotalUnits = m.blended > 0 ? Math.round(s.phAlloc / m.blended) : 0;
+  const phU = {}; TIERS.forEach(t => phU[t.key] = Math.round(m.phTotalUnits * mix[t.key]));
+  m.phU = phU;
+  m.phUnits    = phU.capsule + phU.signature + phU.masterpiece;
+  m.phLoomDays = TIERS.reduce((a,t)=> a + phU[t.key]*ld[t.key], 0);
+  m.phRevenue  = TIERS.reduce((a,t)=> a + phU[t.key]*price[t.key], 0);
+  m.phCOGS     = TIERS.reduce((a,t)=> a + phU[t.key]*cogs[t.key], 0);
+  m.phGP       = m.phRevenue - m.phCOGS;
+  m.phGM       = m.phRevenue ? m.phGP / m.phRevenue : 0;
+
+  // 3.4 constraint check
+  m.totalUsed = m.melLoomDays + m.phLoomDays;
+  m.headroom  = m.ceiling - m.totalUsed;
+  m.util      = m.ceiling ? m.totalUsed / m.ceiling : 0;
+  m.state     = m.util > 1 ? 'breach' : (m.util > 0.92 ? 'tight' : 'ok');
+  m.overBy    = Math.max(0, m.totalUsed - m.ceiling);
+
+  // 3.5 Melbourne P&L
+  m.amort = s.amortYears ? s.assets / s.amortYears : 0;
+  m.opProfit = m.melGP - s.opSpend - m.amort - s.contingency;
+  m.opMargin = m.melRevenue ? m.opProfit / m.melRevenue : 0;
+
+  // 3.6 the ask
+  m.programme = s.assets + s.opSpend + s.contingency;
+  m.facility  = m.programme + s.workingCapital;
+  m.reconGap  = s.assets - m.amort;
+
+  // 3.7 unit economics
+  m.acqTotal  = s.acq_media + s.acq_creator + s.acq_community + s.acq_popup;
+  m.cac       = m.melUnits ? m.acqTotal / m.melUnits : 0;
+  m.gpUnit    = m.melUnits ? m.melGP / m.melUnits : 0;
+  m.ratio     = m.cac ? m.gpUnit / m.cac : 0;
+  m.fixedLoad = s.opSpend + m.amort + s.contingency;
+  // operating profit at sell-through x:  melGP × (x / base) − fixedLoad = 0
+  m.breakeven = m.melGP > 0 ? (m.fixedLoad / m.melGP) * (s.sellThrough/100) : 0;
+
+  // 3.8 weaver income — both markets counted
+  m.labour     = m.totalUsed * s.weaverRate;
+  m.perWeaver  = s.weavers ? m.labour / s.weavers : 0;
+  m.daysWorked = s.weavers ? m.totalUsed / s.weavers : 0;
+  m.daysAvail  = s.loomDaysPerWeaver;
+  m.personalUtil = s.loomDaysPerWeaver ? m.daysWorked / s.loomDaysPerWeaver : 0;
+
+  // company-wide Year 1 (context only — never part of the ask)
+  m.companyRevenue = m.melRevenue + m.phRevenue;
+  m.companyCOGS    = m.melCOGS + m.phCOGS;
+  m.companyGP      = m.companyRevenue - m.companyCOGS;
+  m.companyGM      = m.companyRevenue ? m.companyGP / m.companyRevenue : 0;
+  m.phShare        = m.companyRevenue ? m.phRevenue / m.companyRevenue : 0;
+  m.melShare       = m.companyRevenue ? m.melRevenue / m.companyRevenue : 0;
+
+  // capacity shares, and the buffer that was targeted before rounding
+  m.melCapShare   = m.ceiling ? m.melLoomDays / m.ceiling : 0;
+  m.phCapShare    = m.ceiling ? m.phLoomDays / m.ceiling : 0;
+  m.headroomShare = m.ceiling ? m.headroom / m.ceiling : 0;
+  m.bufferTarget  = m.ceiling - m.melLoomDays - s.phAlloc;   // 366 at base
+  m.bufferShare   = m.ceiling ? m.bufferTarget / m.ceiling : 0;
+
+  // the 90-day Capsule sell-through gate — units, not price
+  m.gateUnits = Math.round(melU.capsule * s.sellThrough/100);
+
+  // 3.10 sensitivity — scale the whole Melbourne mix relative to the base rate
+  m.sens = [60, s.sellThrough, 95].map((rate,i) => {
+    const f = s.sellThrough ? rate / s.sellThrough : 0;
+    const u = {}; TIERS.forEach(t => u[t.key] = Math.round(melU[t.key] * f));
+    const units = TIERS.reduce((a,t)=>a+u[t.key],0);
+    const rev   = TIERS.reduce((a,t)=>a+u[t.key]*price[t.key],0);
+    const cog   = TIERS.reduce((a,t)=>a+u[t.key]*cogs[t.key],0);
+    const gp    = rev - cog;
+    return { rate, isBase:i===1, units, rev, cogs:cog, gp,
+             op: gp - s.opSpend - m.amort - s.contingency,
+             loomDays: TIERS.reduce((a,t)=>a+u[t.key]*ld[t.key],0) };
+  });
+
+  // 3.9 five-year projection — the constraint check runs in every year
+  const weaversBy = [null, s.weavers, s.weaversY2, s.weaversY3, s.weaversY4, s.weaversY5];
+  const targets   = [null, m.melUnits, s.melTargetY2, s.melTargetY3, s.melTargetY4, s.melTargetY5];
+  const margins   = [null, null, s.opMarginY2/100, s.opMarginY3/100, s.opMarginY4/100, s.opMarginY5/100];
+  m.years = [];
+  let phPrev = m.phTotalUnits;
+  for (let y = 1; y <= 5; y++){
+    const melTU = {};
+    TIERS.forEach(t => melTU[t.key] = y === 1 ? melU[t.key]
+      : Math.round(targets[y] * (m.melUnits ? melU[t.key]/m.melUnits : 0)));
+    const phTot = y === 1 ? m.phTotalUnits : Math.round(phPrev * (1 + s.phGrowth/100));
+    phPrev = phTot;
+    const phTU = {};
+    TIERS.forEach(t => phTU[t.key] = y === 1 ? phU[t.key] : Math.round(phTot * mix[t.key]));
+    const sum = (o, get) => TIERS.reduce((a,t)=> a + o[t.key]*get(t), 0);
+    const r = {
+      year:y, weavers:weaversBy[y], ceiling:weaversBy[y]*s.loomDaysPerWeaver,
+      melUnits: TIERS.reduce((a,t)=>a+melTU[t.key],0),
+      melLoomDays: sum(melTU, t=>ld[t.key]),
+      melRevenue:  sum(melTU, t=>price[t.key]),
+      melCOGS:     sum(melTU, t=>cogs[t.key]),
+      phUnits: TIERS.reduce((a,t)=>a+phTU[t.key],0),
+      phLoomDays: sum(phTU, t=>ld[t.key]),
+      phRevenue:  sum(phTU, t=>price[t.key]),
+      phCOGS:     sum(phTU, t=>cogs[t.key]),
+      melTU, phTU
+    };
+    r.used        = r.melLoomDays + r.phLoomDays;
+    r.util        = r.ceiling ? r.used / r.ceiling : 0;
+    r.headroom    = r.ceiling - r.used;
+    r.state       = r.util > 1 ? 'breach' : (r.util > 0.92 ? 'tight' : 'ok');
+    r.companyRev  = r.melRevenue + r.phRevenue;
+    r.companyCOGS = r.melCOGS + r.phCOGS;
+    r.companyGP   = r.companyRev - r.companyCOGS;
+    r.companyGM   = r.companyRev ? r.companyGP / r.companyRev : 0;
+    r.phShare     = r.companyRev ? r.phRevenue / r.companyRev : 0;
+    r.melGP       = r.melRevenue - r.melCOGS;
+    r.opMargin    = y === 1 ? (r.melRevenue ? m.opProfit/r.melRevenue : 0) : margins[y];
+    r.melOpProfit = y === 1 ? m.opProfit : r.melRevenue * margins[y];
+    r.newWeavers  = y === 1 ? 0 : weaversBy[y] - weaversBy[y-1];
+    r.labour      = r.used * s.weaverRate;
+    r.perWeaver   = r.weavers ? r.labour / r.weavers : 0;
+    r.daysWorked  = r.weavers ? r.used / r.weavers : 0;
+    m.years.push(r);
+  }
+  const tot = f => m.years.reduce((a,r)=> a + f(r), 0);
+  m.cum = {
+    melRevenue: tot(r=>r.melRevenue), melOpProfit: tot(r=>r.melOpProfit),
+    phRevenue:  tot(r=>r.phRevenue),  companyRevenue: tot(r=>r.companyRev),
+    companyGP:  tot(r=>r.companyGP),  companyCOGS: tot(r=>r.companyCOGS)
+  };
+  m.cum.companyGM = m.cum.companyRevenue ? m.cum.companyGP / m.cum.companyRevenue : 0;
+  m.cum.multiple  = m.programme ? m.cum.melOpProfit / m.programme : 0;
+  m.bindingYear   = m.years.reduce((b,r)=> (!b || r.util > b.util) ? r : b, null);
+
+  // Payback on the programme ask. Cumulative Melbourne operating profit against the
+  // programme spend; the fraction within the crossing year assumes profit accrues
+  // evenly through that year, which is an approximation and is labelled as one.
+  let run = 0; m.payback = null; m.paybackYear = null;
+  for (const r of m.years){
+    const before = run; run += r.melOpProfit;
+    if (m.payback === null && run >= m.programme && r.melOpProfit > 0){
+      const frac = (m.programme - before) / r.melOpProfit;
+      m.payback = (r.year - 1) + frac;         // in years from the start
+      m.paybackYear = r.year;
+      m.paybackMonths = Math.max(1, Math.ceil(frac * 12));
+    }
+  }
+  m.cumOpByYear = m.years.map((r,i)=> m.years.slice(0,i+1).reduce((a,x)=>a+x.melOpProfit,0));
+
+  // Three ways out of a capacity breach, each costed. A banner that only says
+  // "reduce units or add weavers" is a wall; these are the actual numbers.
+  if (m.overBy > 0){
+    const melLD = m.melLoomDays || 1;
+    const keep  = Math.max(0, melLD - m.overBy) / melLD;      // proportional Melbourne cut
+    const cutUnits = {}; let cutTotal = 0;
+    TIERS.forEach(t=>{ cutUnits[t.key] = melU[t.key] - Math.floor(melU[t.key]*keep); cutTotal += cutUnits[t.key]; });
+    m.fix = {
+      capsuleOnly: Math.ceil(m.overBy / (ld.capsule || 1)),
+      cutUnits, cutTotal,
+      weaversNeeded: Math.ceil(m.overBy / (s.loomDaysPerWeaver || 1)),
+      loomDaysFromDomestic: Math.min(m.overBy, s.phAlloc),
+      domesticUnitsLost: m.blended ? Math.round(Math.min(m.overBy, s.phAlloc) / m.blended) : 0,
+      shortOfDomestic: Math.max(0, m.overBy - s.phAlloc)
+    };
+  } else m.fix = null;
+  return m;
+}
+
+/* =======================================================================
+   4b · ROBUSTNESS ENGINE — tornado, two-way grid, Monte Carlo
+   ======================================================================= */
+
+/* One-at-a-time sensitivity. Every input is flexed ±spread and the effect on the
+   chosen metric recorded, so "which assumption matters most" is derived rather
+   than asserted. Inputs with no effect drop out on their own. */
+const TORNADO_METRICS = {
+  opProfit:   { label:'Year-1 operating profit',      get:m=>m.opProfit,        type:'signed' },
+  util:       { label:'Loom-day utilisation',          get:m=>m.util,            type:'pct'    },
+  melGM:      { label:'Melbourne gross margin',        get:m=>m.melGM,           type:'pct'    },
+  cumMultiple:{ label:'Cumulative multiple on the ask', get:m=>m.cum.multiple,   type:'x'      }
+};
+function tornado(metricKey, spreadPct){
+  const met = TORNADO_METRICS[metricKey];
+  const base = met.get(M);
+  const rows = [];
+  ALL_IN.forEach(i=>{
+    const v = S[i.k];
+    if (!isFinite(v)) return;
+    const step = i.step || 1;
+    const flex = d => {
+      let x = v * (1 + d);
+      if (step >= 1) x = Math.round(x);
+      x = Math.max(i.min, Math.min(i.max, x));
+      return x;
+    };
+    const lo = flex(-spreadPct/100), hi = flex(spreadPct/100);
+    if (lo === v && hi === v) return;
+    const mLo = met.get(compute(Object.assign({}, S, {[i.k]:lo})));
+    const mHi = met.get(compute(Object.assign({}, S, {[i.k]:hi})));
+    const dLo = mLo - base, dHi = mHi - base;
+    const swing = Math.max(Math.abs(dLo), Math.abs(dHi));
+    if (swing < Math.abs(base) * 1e-9 || swing === 0) return;
+    rows.push({ k:i.k, label:i.label, tag:i.tag, lo, hi, dLo, dHi, swing, base,
+                vLo:mLo, vHi:mHi, type:met.type });
+  });
+  rows.sort((a,b)=> b.swing - a.swing);
+  return { base, rows, metric:met };
+}
+
+/* Two-way grid over the two inputs the audit calls most load-bearing:
+   loom-days per weaver (deliverability) and sell-through (demand). */
+function twoWayGrid(){
+  const ldpwAxis = [80, 90, 100, 110, 120, 130, 140];
+  const rateAxis = [50, 60, 70, 80, 90, 95, 100];
+  const cells = ldpwAxis.map(ldpw => rateAxis.map(rate => {
+    const f = S.sellThrough ? rate / S.sellThrough : 0;
+    const u = {}; TIERS.forEach(t=> u[t.key] = Math.round(S['mel_'+t.key] * f));
+    const s2 = Object.assign({}, S, { loomDaysPerWeaver: ldpw,
+      mel_capsule:u.capsule, mel_signature:u.signature, mel_masterpiece:u.masterpiece });
+    const m2 = compute(s2);
+    return { ldpw, rate, op:m2.opProfit, util:m2.util, breach:m2.state==='breach',
+             units:m2.melUnits, isBase: ldpw===S.loomDaysPerWeaver && rate===S.sellThrough };
+  }));
+  const flat = cells.flat().filter(c=>!c.breach).map(c=>c.op);
+  return { ldpwAxis, rateAxis, cells, min:Math.min(...flat), max:Math.max(...flat) };
+}
+
+/* Monte Carlo.
+   HONESTY NOTE, and it is load-bearing: the distributions below are NOT sourced.
+   No variance data exists for any of these inputs. What is modelled is a
+   symmetric triangular spread around each current value, with the width set by a
+   single visible input, and the inputs sampled independently. That makes this a
+   robustness illustration — how much the answer moves when the fragile estimates
+   move together — and explicitly NOT a probability of commercial success.
+   The RNG is seeded, so the same inputs always give the same result. */
+const MC_INPUTS = ['loomDaysPerWeaver','ld_capsule','ld_signature','ld_masterpiece',
+                   'cogs_capsule','cogs_signature','cogs_masterpiece',
+                   'mel_capsule','mel_signature','mel_masterpiece'];
+function lcg(seed){ let s = seed >>> 0; return ()=> (s = (s*1664525 + 1013904223) >>> 0) / 4294967296; }
+function triangular(rand, lo, mode, hi){
+  if (hi <= lo) return mode;
+  const u = rand(), c = (mode - lo)/(hi - lo);
+  return u < c ? lo + Math.sqrt(u*(hi-lo)*(mode-lo))
+               : hi - Math.sqrt((1-u)*(hi-lo)*(hi-mode));
+}
+function monteCarlo(){
+  const trials = Math.max(200, Math.min(20000, Math.round(S.mcTrials)));
+  const d = S.mcSpread/100;
+  const rand = lcg(20260730);                  // fixed seed → reproducible
+  const ops = [], utils = [];
+  let profitable = 0, breached = 0;
+  const sampled = MC_INPUTS.filter(k=>INBY[k]);
+  for (let t = 0; t < trials; t++){
+    const s2 = Object.assign({}, S);
+    sampled.forEach(k=>{
+      const i = INBY[k], v = S[k];
+      let x = triangular(rand, v*(1-d), v, v*(1+d));
+      if ((i.step||1) >= 1) x = Math.round(x);
+      s2[k] = Math.max(i.min, Math.min(i.max, x));
+    });
+    const m2 = compute(s2);
+    ops.push(m2.opProfit); utils.push(m2.util);
+    if (m2.opProfit > 0) profitable++;
+    if (m2.state === 'breach') breached++;
+  }
+  ops.sort((a,b)=>a-b); utils.sort((a,b)=>a-b);
+  const q = (arr,p) => arr[Math.min(arr.length-1, Math.floor(p*(arr.length-1)))];
+  return {
+    trials, spread:S.mcSpread, sampled,
+    p10:q(ops,0.10), p50:q(ops,0.50), p90:q(ops,0.90),
+    min:ops[0], max:ops[ops.length-1],
+    utilP50:q(utils,0.50), utilP90:q(utils,0.90),
+    pProfit:profitable/trials, pBreach:breached/trials, ops
+  };
+}
+
+
+/* =======================================================================
+   5 · TRACEABILITY — every metric knows its formula, its inputs, its feeds
+   ======================================================================= */
+const G = grp; // shorthand inside trace strings
+function traceDefs(s, m){
+  const T = {};
+  const add = (id, o) => { T[id] = o; };
+  const tsum = (get) => TIERS.map(t => G(get(t))).join(' + ');
+
+  add('ceiling', {
+    title:'Capacity ceiling', type:'num', v:m.ceiling,
+    f:'ceiling = weavers × loom-days per weaver per year',
+    sub:`${G(s.weavers)} × ${G(s.loomDaysPerWeaver)} = ${G(m.ceiling)} loom-days`,
+    deps:['weavers','loomDaysPerWeaver'], feeds:['util','headroom','perWeaver','personalUtil'],
+    note:'The hard cap. No amount of Melbourne demand can exceed it.'
+  });
+  add('melUnits', {
+    title:'Melbourne units, Year 1', type:'num', v:m.melUnits,
+    f:'melUnits = Σ units[tier]',
+    sub:`${G(m.melU.capsule)} + ${G(m.melU.signature)} + ${G(m.melU.masterpiece)} = ${G(m.melUnits)}`,
+    deps:['mel_capsule','mel_signature','mel_masterpiece'], feeds:['cac','gpUnit','ratio']
+  });
+  const mldSub = TIERS.map(t=>`${G(m.melU[t.key])}×${G(m.ld[t.key])}`).join(' + ')
+    + ' = ' + TIERS.map(t=>G(m.melU[t.key]*m.ld[t.key])).join(' + ') + ' = ' + G(m.melLoomDays);
+  ['melLoomDays','melLoomDays_b'].forEach(id => add(id, {
+    title:'Melbourne loom-days', type:'num', v:m.melLoomDays,
+    f:'melLoomDays = Σ (units[tier] × loom-days[tier])', sub:mldSub,
+    deps:['mel_capsule','mel_signature','mel_masterpiece','ld_capsule','ld_signature','ld_masterpiece'],
+    feeds:['totalUsed','util','headroom']
+  }));
+  add('melRevenue', {
+    title:'Melbourne revenue', type:'peso', v:m.melRevenue,
+    f:'melRevenue = Σ (units[tier] × price[tier]),  price = base × (1 + markup)',
+    sub:TIERS.map(t=>`${G(m.melU[t.key])}×${G(m.price[t.key])}`).join(' + ') + ' = ₱' + G(m.melRevenue),
+    deps:['mel_capsule','mel_signature','mel_masterpiece','base_capsule','base_signature','base_masterpiece','markup'],
+    feeds:['melGP','melGM','opProfit','companyRevenue']
+  });
+  add('melCOGS', {
+    title:'Melbourne COGS', type:'peso', v:m.melCOGS,
+    f:'melCOGS = Σ (units[tier] × COGS[tier])',
+    sub:TIERS.map(t=>`${G(m.melU[t.key])}×${G(m.cogs[t.key])}`).join(' + ') + ' = ₱' + G(m.melCOGS),
+    deps:['mel_capsule','mel_signature','mel_masterpiece','cogs_capsule','cogs_signature','cogs_masterpiece'],
+    feeds:['melGP','melGM']
+  });
+  add('melGP', {
+    title:'Melbourne gross profit', type:'peso', v:m.melGP,
+    f:'melGP = melRevenue − melCOGS',
+    sub:`₱${G(m.melRevenue)} − ₱${G(m.melCOGS)} = ₱${G(m.melGP)}`,
+    deps:['mel_capsule','mel_signature','mel_masterpiece','base_capsule','base_signature','base_masterpiece','markup','cogs_capsule','cogs_signature','cogs_masterpiece'],
+    feeds:['melGM','opProfit','gpUnit','ratio','breakeven']
+  });
+  add('melGM', {
+    title:'Melbourne gross margin', type:'pct', v:m.melGM,
+    f:'melGM = melGP ÷ melRevenue',
+    sub:`₱${G(m.melGP)} ÷ ₱${G(m.melRevenue)} = ${pct(m.melGM)}`,
+    deps:['markup','cogs_capsule','cogs_signature','cogs_masterpiece','base_capsule','base_signature','base_masterpiece'],
+    feeds:['opProfit']
+  });
+  add('blended', {
+    title:'Blended loom-days per domestic unit', type:'num1', v:m.blended,
+    f:'blended = Σ (mix[tier] × loom-days[tier])',
+    sub:TIERS.map(t=>`${(m.mix[t.key]).toFixed(2)}×${G(m.ld[t.key])}`).join(' + ') + ' = ' + m.blended.toFixed(2),
+    deps:['mix_capsule','mix_signature','mix_masterpiece','ld_capsule','ld_signature','ld_masterpiece'],
+    feeds:['phUnits','phLoomDays'],
+    note:'Domestic is sized by loom-days, so this converts an allocation into a number of garments.'
+  });
+  add('phUnits', {
+    title:'Domestic units, Year 1', type:'num', v:m.phUnits,
+    f:'phTotalUnits = allocation ÷ blended;  units[tier] = round(phTotalUnits × mix[tier])',
+    sub:`${G(s.phAlloc)} ÷ ${m.blended.toFixed(2)} = ${G(m.phTotalUnits)} → `
+       + TIERS.map(t=>`${t.name} ${G(m.phU[t.key])}`).join(' · ') + ` → ${G(m.phUnits)} units`,
+    deps:['phAlloc','mix_capsule','mix_signature','mix_masterpiece','ld_capsule','ld_signature','ld_masterpiece'],
+    feeds:['phRevenue','phCOGS','phLoomDays']
+  });
+  const phldSub = TIERS.map(t=>`${G(m.phU[t.key])}×${G(m.ld[t.key])}`).join(' + ')
+    + ' = ' + TIERS.map(t=>G(m.phU[t.key]*m.ld[t.key])).join(' + ') + ' = ' + G(m.phLoomDays);
+  ['phLoomDays','phLoomDays_b','phLoomDays2'].forEach(id => add(id, {
+    title:'Domestic loom-days consumed', type:'num', v:m.phLoomDays,
+    f:'phLoomDaysUsed = Σ (rounded units[tier] × loom-days[tier])', sub:phldSub,
+    deps:['phAlloc','mix_capsule','mix_signature','mix_masterpiece','ld_capsule','ld_signature','ld_masterpiece'],
+    feeds:['totalUsed','util','headroom'],
+    note:`Rounding to whole garments means the ${G(s.phAlloc)} allocated loom-days actually consume ${G(m.phLoomDays)}. We display what is consumed, not the target — otherwise headroom reads wrong by ${G(s.phAlloc - m.phLoomDays)} days.`
+  }));
+  add('phAllocEcho', {
+    title:'Domestic loom-day allocation (input)', type:'num', v:s.phAlloc,
+    f:'a direct input — the existing business’s first claim on the looms',
+    sub:`allocation = ${G(s.phAlloc)} loom-days`,
+    deps:['phAlloc'], feeds:['phUnits','phLoomDays']
+  });
+  add('phRevenue', {
+    title:'Domestic revenue', type:'peso', v:m.phRevenue,
+    f:'phRevenue = Σ (units[tier] × price[tier])',
+    sub:TIERS.map(t=>`${G(m.phU[t.key])}×${G(m.price[t.key])}`).join(' + ') + ' = ₱' + G(m.phRevenue),
+    deps:['phAlloc','mix_capsule','mix_signature','mix_masterpiece','base_capsule','base_signature','base_masterpiece','markup'],
+    feeds:['phGP','phGM','companyRevenue']
+  });
+  add('phCOGS', {
+    title:'Domestic COGS', type:'peso', v:m.phCOGS,
+    f:'phCOGS = Σ (units[tier] × COGS[tier])',
+    sub:TIERS.map(t=>`${G(m.phU[t.key])}×${G(m.cogs[t.key])}`).join(' + ') + ' = ₱' + G(m.phCOGS),
+    deps:['phAlloc','mix_capsule','mix_signature','mix_masterpiece','cogs_capsule','cogs_signature','cogs_masterpiece'],
+    feeds:['phGP','phGM']
+  });
+  add('phGP', {
+    title:'Domestic gross profit', type:'peso', v:m.phGP,
+    f:'phGP = phRevenue − phCOGS',
+    sub:`₱${G(m.phRevenue)} − ₱${G(m.phCOGS)} = ₱${G(m.phGP)}`,
+    deps:['phAlloc','mix_capsule','mix_signature','mix_masterpiece','markup'], feeds:['phGM']
+  });
+  add('phGM', {
+    title:'Domestic gross margin', type:'pct', v:m.phGM,
+    f:'phGM = phGP ÷ phRevenue',
+    sub:`₱${G(m.phGP)} ÷ ₱${G(m.phRevenue)} = ${pct(m.phGM)}`,
+    deps:['markup','cogs_capsule','cogs_signature','cogs_masterpiece'], feeds:[]
+  });
+  add('totalUsed', {
+    title:'Total loom-days used', type:'num', v:m.totalUsed,
+    f:'totalUsed = melLoomDays + phLoomDaysUsed',
+    sub:`${G(m.melLoomDays)} + ${G(m.phLoomDays)} = ${G(m.totalUsed)}`,
+    deps:['mel_capsule','mel_signature','mel_masterpiece','phAlloc','ld_capsule','ld_signature','ld_masterpiece','mix_capsule','mix_signature','mix_masterpiece'],
+    feeds:['util','headroom','labour','perWeaver','daysWorked','personalUtil']
+  });
+  add('headroom', {
+    title:'Headroom', type:'num', v:m.headroom,
+    f:'headroom = ceiling − totalUsed',
+    sub:`${G(m.ceiling)} − ${G(m.totalUsed)} = ${G(m.headroom)} loom-days`,
+    deps:['weavers','loomDaysPerWeaver','mel_capsule','mel_signature','mel_masterpiece','phAlloc'],
+    feeds:[],
+    note:'Not slack. It absorbs reweaving a flawed panel, custom sizing, rest days, and the weeks when rice farming takes priority.'
+  });
+  add('util', {
+    title:'Loom-day utilisation', type:'pct', v:m.util,
+    f:'utilisation = totalUsed ÷ ceiling',
+    sub:`${G(m.totalUsed)} ÷ ${G(m.ceiling)} = ${pct(m.util)}`,
+    deps:['weavers','loomDaysPerWeaver','mel_capsule','mel_signature','mel_masterpiece','phAlloc','ld_capsule','ld_signature','ld_masterpiece','mix_capsule','mix_signature','mix_masterpiece'],
+    feeds:[],
+    note:'≤92% in bounds · 92–100% tight · above 100% the plan cannot be delivered.'
+  });
+  add('amort', {
+    title:'Amortisation charged to Year 1', type:'peso', v:m.amort,
+    f:'amortisation = assets ÷ amortisation period',
+    sub:`₱${G(s.assets)} ÷ ${G(s.amortYears)} = ₱${G(Math.round(m.amort))}`,
+    deps:['assets','amortYears'], feeds:['opProfit','reconGap','breakeven']
+  });
+  add('opProfit', {
+    title:'Year-1 Melbourne operating profit', type:'signed', v:m.opProfit,
+    f:'operatingProfit = melGP − operating spend − amortisation − contingency',
+    sub:`${G(Math.round(m.melGP))} − ${G(s.opSpend)} − ${G(Math.round(m.amort))} − ${G(s.contingency)} = ${G(Math.round(m.opProfit))}`,
+    deps:['mel_capsule','mel_signature','mel_masterpiece','markup','base_capsule','base_signature','base_masterpiece','cogs_capsule','cogs_signature','cogs_masterpiece','opSpend','assets','amortYears','contingency'],
+    feeds:['opMargin'],
+    note:'Melbourne only. Domestic gross profit is not in this line.'
+  });
+  add('opMargin', {
+    title:'Operating margin on Melbourne revenue', type:'pct', v:m.opMargin,
+    f:'operatingMargin = operatingProfit ÷ melRevenue',
+    sub:`₱${G(Math.round(m.opProfit))} ÷ ₱${G(Math.round(m.melRevenue))} = ${pct(m.opMargin)}`,
+    deps:['opSpend','assets','amortYears','contingency','markup'], feeds:[]
+  });
+  add('programme', {
+    title:'Programme ask', type:'peso', v:m.programme,
+    f:'programme = assets + operating spend + contingency',
+    sub:`${G(s.assets)} + ${G(s.opSpend)} + ${G(s.contingency)} = ₱${G(m.programme)}`,
+    deps:['assets','opSpend','contingency'], feeds:['facility']
+  });
+  add('facility', {
+    title:'Total facility', type:'peso', v:m.facility,
+    f:'totalFacility = programme + working capital',
+    sub:`₱${G(m.programme)} + ₱${G(s.workingCapital)} = ₱${G(m.facility)}`,
+    deps:['assets','opSpend','contingency','workingCapital'], feeds:[],
+    note:'Working capital funds one drop of inventory and is recovered as that drop sells. It never appears in the P&L.'
+  });
+  add('assetsEcho', {
+    title:'Assets charged to the ask', type:'peso', v:s.assets,
+    f:'a direct input — film, asset trip, store rebuild, registry',
+    sub:`assets = ₱${G(s.assets)}`, deps:['assets'], feeds:['programme','amort','reconGap']
+  });
+  add('reconGap', {
+    title:'Reconciliation gap', type:'peso', v:m.reconGap,
+    f:'gap = assets − Year-1 amortisation',
+    sub:`₱${G(s.assets)} − ₱${G(Math.round(m.amort))} = ₱${G(Math.round(m.reconGap))}`,
+    deps:['assets','amortYears'], feeds:[],
+    note:'Spent cash serving Years 2 and 3, not a hole. The ask buys the asset once; the P&L charges one year of it.'
+  });
+  add('acqTotal', {
+    title:'Acquisition spend', type:'peso', v:m.acqTotal,
+    f:'acquisition = paid media + creator flight + community activations + pop-up staffing share',
+    sub:`${G(s.acq_media)} + ${G(s.acq_creator)} + ${G(s.acq_community)} + ${G(s.acq_popup)} = ₱${G(m.acqTotal)}`,
+    deps:['acq_media','acq_creator','acq_community','acq_popup'], feeds:['cac','ratio']
+  });
+  add('cac', {
+    title:'Customer acquisition cost', type:'peso', v:m.cac,
+    f:'CAC = acquisition spend ÷ Melbourne units',
+    sub:`₱${G(m.acqTotal)} ÷ ${G(m.melUnits)} = ₱${G(Math.round(m.cac))}`,
+    deps:['acq_media','acq_creator','acq_community','acq_popup','mel_capsule','mel_signature','mel_masterpiece'],
+    feeds:['ratio'],
+    note:'Spend ÷ units, so doubling units halves CAC. Treat one unit as one acquired customer.'
+  });
+  add('gpUnit', {
+    title:'Gross profit per unit', type:'peso', v:m.gpUnit,
+    f:'gpPerUnit = melGP ÷ Melbourne units',
+    sub:`₱${G(Math.round(m.melGP))} ÷ ${G(m.melUnits)} = ₱${G(Math.round(m.gpUnit))}`,
+    deps:['mel_capsule','mel_signature','mel_masterpiece','markup','base_capsule','base_signature','base_masterpiece','cogs_capsule','cogs_signature','cogs_masterpiece'],
+    feeds:['ratio']
+  });
+  add('ratio', {
+    title:'Gross profit to CAC', type:'x', v:m.ratio,
+    f:'ratio = gpPerUnit ÷ CAC',
+    sub:`₱${G(Math.round(m.gpUnit))} ÷ ₱${G(Math.round(m.cac))} = ${m.ratio.toFixed(1)}×`,
+    deps:['acq_media','acq_creator','acq_community','acq_popup','markup','cogs_capsule','cogs_signature','cogs_masterpiece'],
+    feeds:[]
+  });
+  add('breakeven', {
+    title:'Break-even sell-through', type:'pct', v:m.breakeven,
+    f:'operating profit is zero when  melGP × (rate ÷ base rate) = operating spend + amortisation + contingency\nso  break-even rate = (fixed load ÷ melGP) × base rate',
+    sub:`(₱${G(Math.round(m.fixedLoad))} ÷ ₱${G(Math.round(m.melGP))}) × ${s.sellThrough}% = ${pct(m.breakeven)}`,
+    deps:['opSpend','assets','amortYears','contingency','sellThrough','markup','cogs_capsule','cogs_signature','cogs_masterpiece','mel_capsule','mel_signature','mel_masterpiece'],
+    feeds:[],
+    note:'A figure the deck does not currently state. Below this rate the pilot stops covering its own costs; the February gate sits well above it.'
+  });
+  add('labour', {
+    title:'Total weaver labour cost', type:'peso', v:m.labour,
+    f:'totalLabourCost = totalUsed × weaver rate',
+    sub:`${G(m.totalUsed)} × ₱${G(s.weaverRate)} = ₱${G(m.labour)}`,
+    deps:['weaverRate','mel_capsule','mel_signature','mel_masterpiece','phAlloc'], feeds:['perWeaver'],
+    note:'Both markets counted. Domestic weaving is paid work too.'
+  });
+  add('perWeaver', {
+    title:'Income per weaver per year', type:'peso', v:m.perWeaver,
+    f:'perWeaver = totalLabourCost ÷ weavers',
+    sub:`₱${G(m.labour)} ÷ ${G(s.weavers)} = ₱${G(Math.round(m.perWeaver))}`,
+    deps:['weaverRate','weavers','mel_capsule','mel_signature','mel_masterpiece','phAlloc'], feeds:[],
+    note:'Supplementary income earned alongside farming, not a full salary.'
+  });
+  add('daysWorked', {
+    title:'Loom-days worked per weaver', type:'num', v:m.daysWorked,
+    f:'daysWorked = totalUsed ÷ weavers',
+    sub:`${G(m.totalUsed)} ÷ ${G(s.weavers)} = ${m.daysWorked.toFixed(1)} days`,
+    deps:['weavers','mel_capsule','mel_signature','mel_masterpiece','phAlloc'], feeds:['personalUtil']
+  });
+  add('daysAvail', {
+    title:'Loom-days available per weaver', type:'num', v:m.daysAvail,
+    f:'a direct input — how many days a weaver can give the loom in a year',
+    sub:`${G(s.loomDaysPerWeaver)} days`, deps:['loomDaysPerWeaver'], feeds:['ceiling','personalUtil']
+  });
+  add('personalUtil', {
+    title:'Personal utilisation', type:'pct', v:m.personalUtil,
+    f:'personalUtilisation = (totalUsed ÷ weavers) ÷ loom-days per weaver',
+    sub:`(${G(m.totalUsed)} ÷ ${G(s.weavers)}) ÷ ${G(s.loomDaysPerWeaver)} = ${m.daysWorked.toFixed(0)} of ${G(s.loomDaysPerWeaver)} days = ${pct(m.personalUtil,0)}`,
+    deps:['weavers','loomDaysPerWeaver','mel_capsule','mel_signature','mel_masterpiece','phAlloc'], feeds:[]
+  });
+  add('companyRevenue', {
+    title:'Company revenue, Year 1', type:'peso', v:m.companyRevenue,
+    f:'companyRevenue = melRevenue + phRevenue',
+    sub:`₱${G(Math.round(m.melRevenue))} + ₱${G(Math.round(m.phRevenue))} = ₱${G(Math.round(m.companyRevenue))}`,
+    deps:['mel_capsule','mel_signature','mel_masterpiece','phAlloc','markup'], feeds:[],
+    note:'The ₱2.90M programme ask funds the Melbourne pilot only. It does not buy this figure.'
+  });
+  // per-tier derived cells
+  TIERS.forEach(t=>{
+    add('price_'+t.key, {
+      title:t.name+' price', type:'peso', v:m.price[t.key],
+      f:'price = base price × (1 + markup)',
+      sub:`₱${G(m.base[t.key])} × (1 + ${s.markup}%) = ₱${G(Math.round(m.price[t.key]))}`,
+      deps:['base_'+t.key,'markup'], feeds:['melRevenue','phRevenue']
+    });
+    add('gpu_'+t.key, {
+      title:t.name+' gross profit per unit', type:'peso', v:m.price[t.key]-m.cogs[t.key],
+      f:'gp = price − COGS',
+      sub:`₱${G(Math.round(m.price[t.key]))} − ₱${G(m.cogs[t.key])} = ₱${G(Math.round(m.price[t.key]-m.cogs[t.key]))}`,
+      deps:['base_'+t.key,'markup','cogs_'+t.key], feeds:['melGP','phGP']
+    });
+    add('gm_'+t.key, {
+      title:t.name+' margin', type:'pct', v:m.price[t.key] ? (m.price[t.key]-m.cogs[t.key])/m.price[t.key] : 0,
+      f:'margin = (price − COGS) ÷ price',
+      sub:`₱${G(Math.round(m.price[t.key]-m.cogs[t.key]))} ÷ ₱${G(Math.round(m.price[t.key]))} = ${pct(m.price[t.key] ? (m.price[t.key]-m.cogs[t.key])/m.price[t.key] : 0)}`,
+      deps:['base_'+t.key,'markup','cogs_'+t.key], feeds:['melGM','phGM']
+    });
+  });
+  // P&L rows
+  add('pnl_rev',   T.melRevenue); add('pnl_cogs', T.melCOGS); add('pnl_gp', T.melGP);
+  add('pnl_ops',   { title:'Operating spend', type:'peso', v:s.opSpend,
+    f:'a direct input — events, pop-up, media, creators, freight',
+    sub:`operating spend = ₱${G(s.opSpend)}`, deps:['opSpend'], feeds:['opProfit','breakeven'] });
+  add('pnl_amort', T.amort);
+  add('pnl_cont',  { title:'Contingency', type:'peso', v:s.contingency,
+    f:'a direct input — charged deliberately rather than hidden',
+    sub:`contingency = ₱${G(s.contingency)}`, deps:['contingency'], feeds:['opProfit','breakeven'] });
+  add('pnl_op',    T.opProfit); add('pnl_opm', T.opMargin);
+  // ask rows
+  add('ask_wc', { title:'Working capital', type:'peso', v:s.workingCapital,
+    f:'a direct input — one drop of inventory',
+    sub:`working capital = ₱${G(s.workingCapital)}`, deps:['workingCapital'], feeds:['facility'] });
+  // benchmark comparisons
+  const BM = [ {n:'CAR non-agricultural minimum', v:505}, {n:'CAR agricultural minimum', v:480}, {n:'Regional poverty threshold', v:435} ];
+  BM.forEach((b,i)=> add('bm_'+i, {
+    title:'Our rate vs '+b.n, type:'x', v:s.weaverRate/b.v,
+    f:'multiple = weaver rate ÷ benchmark',
+    sub:`₱${G(s.weaverRate)} ÷ ₱${G(b.v)} = ${(s.weaverRate/b.v).toFixed(1)}×`,
+    deps:['weaverRate'], feeds:[],
+    note:'Benchmark held fixed at the published CAR Wage Order figure; it is not an input we can move.'
+  }));
+  // ---- company-wide Year 1 (context only)
+  add('companyCOGS', { title:'Company COGS, Year 1', type:'peso', v:m.companyCOGS,
+    f:'companyCOGS = melCOGS + phCOGS',
+    sub:`₱${G(m.melCOGS)} + ₱${G(m.phCOGS)} = ₱${G(m.companyCOGS)}`,
+    deps:['mel_capsule','mel_signature','mel_masterpiece','phAlloc','cogs_capsule','cogs_signature','cogs_masterpiece'],
+    feeds:['companyGP'] });
+  add('companyGP', { title:'Company gross profit, Year 1', type:'peso', v:m.companyGP,
+    f:'companyGP = companyRevenue − companyCOGS',
+    sub:`₱${G(Math.round(m.companyRevenue))} − ₱${G(m.companyCOGS)} = ₱${G(Math.round(m.companyGP))} (${pct(m.companyGM)})`,
+    deps:['mel_capsule','mel_signature','mel_masterpiece','phAlloc','markup'], feeds:[],
+    note:'Company-wide, both markets. Not what the ask buys.' });
+  add('companyGM', { title:'Company gross margin, Year 1', type:'pct', v:m.companyGM,
+    f:'companyGM = companyGP ÷ companyRevenue',
+    sub:`₱${G(Math.round(m.companyGP))} ÷ ₱${G(Math.round(m.companyRevenue))} = ${pct(m.companyGM)}`,
+    deps:['markup','cogs_capsule','cogs_signature','cogs_masterpiece'], feeds:[] });
+  add('phShare', { title:'Domestic share of company revenue', type:'pct', v:m.phShare,
+    f:'phShare = phRevenue ÷ companyRevenue',
+    sub:`₱${G(Math.round(m.phRevenue))} ÷ ₱${G(Math.round(m.companyRevenue))} = ${pct(m.phShare)}`,
+    deps:['phAlloc','mel_capsule','mel_signature','mel_masterpiece','mix_capsule','mix_signature','mix_masterpiece'],
+    feeds:[],
+    note:'Domestic is deliberately modelled as the larger market. It is a consequence of the loom-day allocation and each market’s own tier mix, not a share picked in advance.' });
+  add('melShare', { title:'Melbourne share of company revenue', type:'pct', v:m.melShare,
+    f:'melShare = melRevenue ÷ companyRevenue',
+    sub:`₱${G(Math.round(m.melRevenue))} ÷ ₱${G(Math.round(m.companyRevenue))} = ${pct(m.melShare)}`,
+    deps:['phAlloc','mel_capsule','mel_signature','mel_masterpiece'], feeds:[] });
+
+  // ---- capacity shares and the pre-rounding buffer
+  add('melCapShare', { title:'Melbourne share of the loom-day ceiling', type:'pct', v:m.melCapShare,
+    f:'melCapShare = melLoomDays ÷ ceiling',
+    sub:`${G(m.melLoomDays)} ÷ ${G(m.ceiling)} = ${pct(m.melCapShare)}`,
+    deps:['mel_capsule','mel_signature','mel_masterpiece','weavers','loomDaysPerWeaver'], feeds:[] });
+  add('bufferTarget', { title:'Headroom targeted before rounding', type:'num', v:m.bufferTarget,
+    f:'bufferTarget = ceiling − melLoomDays − domestic allocation',
+    sub:`${G(m.ceiling)} − ${G(m.melLoomDays)} − ${G(s.phAlloc)} = ${G(m.bufferTarget)} loom-days (${pct(m.bufferShare)})`,
+    deps:['weavers','loomDaysPerWeaver','mel_capsule','mel_signature','mel_masterpiece','phAlloc'], feeds:[],
+    note:`The allocation targeted ${G(m.bufferTarget)} spare loom-days; rounding domestic units to whole garments frees ${G(s.phAlloc - m.phLoomDays)} more, so ${G(m.headroom)} are actually spare. Close to the target and under it — which is the point of calling 3,190 a hard cap.` });
+  add('headroomShare', { title:'Headroom as a share of the ceiling', type:'pct', v:m.headroomShare,
+    f:'headroomShare = headroom ÷ ceiling',
+    sub:`${G(m.headroom)} ÷ ${G(m.ceiling)} = ${pct(m.headroomShare)}`,
+    deps:['weavers','loomDaysPerWeaver','mel_capsule','mel_signature','mel_masterpiece','phAlloc'], feeds:[] });
+  add('payback', {
+    title:'Payback on the programme ask', type:'num1',
+    v: m.payback === null ? 0 : m.payback,
+    f:'payback = the point at which cumulative Melbourne operating profit first covers the programme ask',
+    sub: m.payback === null
+      ? `cumulative operating profit ₱${G(Math.round(m.cum.melOpProfit))} never reaches ₱${G(m.programme)} within five years`
+      : m.years.slice(0, m.paybackYear).map(r=>'₱'+G(Math.round(r.melOpProfit))).join(' + ')
+        + ` reaches ₱${G(m.programme)} during Year ${m.paybackYear} → ${m.payback.toFixed(1)} years`,
+    deps:['assets','opSpend','contingency','opMarginY2','opMarginY3','melTargetY2','melTargetY3','markup'],
+    feeds:['cumMultiple'],
+    note: m.payback === null ? undefined
+      : `Expressed in years from the start. The fraction within Year ${m.paybackYear} assumes operating profit accrues evenly through that year — an approximation, since a drop-based business earns unevenly.` });
+  add('rateEcho', { title:'Weaver rate per loom-day', type:'peso', v:s.weaverRate,
+    f:'a direct input — unchanged by any price decision',
+    sub:`₱${G(s.weaverRate)} per loom-day, ${pct(s.weaverRate/480 - 1, 0)} above the CAR agricultural minimum of ₱480`,
+    deps:['weaverRate'], feeds:['labour','perWeaver'],
+    note:'A price markup is a revenue-side change. It does not touch what a weaver is paid, which is why margin rises without anyone’s pay changing — and also why the markup cannot be presented as a benefit to weavers.' });
+  add('gateUnits', { title:'90-day Capsule sell-through gate', type:'num', v:m.gateUnits,
+    f:'gate = Melbourne Capsule units × sell-through rate',
+    sub:`${G(m.melU.capsule)} × ${s.sellThrough}% = ${G(m.gateUnits)} of ${G(m.melU.capsule)} units`,
+    deps:['mel_capsule','sellThrough'], feeds:[],
+    note:'The gate is about units, not price — a price markup does not move it.' });
+
+  // ---- cumulative five-year
+  add('cumMelRevenue', { title:'Cumulative Melbourne revenue, 5 years', type:'peso', v:m.cum.melRevenue,
+    f:'Σ melRevenue[y] for y = 1…5',
+    sub:m.years.map(r=>'₱'+G(Math.round(r.melRevenue))).join(' + ') + ' = ₱' + G(Math.round(m.cum.melRevenue)),
+    deps:['melTargetY2','melTargetY3','melTargetY4','melTargetY5','markup'], feeds:[] });
+  add('cumPhRevenue', { title:'Cumulative domestic revenue, 5 years', type:'peso', v:m.cum.phRevenue,
+    f:'Σ phRevenue[y] for y = 1…5',
+    sub:m.years.map(r=>'₱'+G(Math.round(r.phRevenue))).join(' + ') + ' = ₱' + G(Math.round(m.cum.phRevenue)),
+    deps:['phAlloc','phGrowth','markup'], feeds:[],
+    note:'Context only. Not part of the ask.' });
+  add('cumCompanyRevenue', { title:'Cumulative company revenue, 5 years', type:'peso', v:m.cum.companyRevenue,
+    f:'cumulative company = cumulative Melbourne + cumulative domestic',
+    sub:`₱${G(Math.round(m.cum.melRevenue))} + ₱${G(Math.round(m.cum.phRevenue))} = ₱${G(Math.round(m.cum.companyRevenue))}`,
+    deps:['melTargetY2','melTargetY3','melTargetY4','melTargetY5','phGrowth','phAlloc'], feeds:[] });
+  add('cumCompanyGP', { title:'Cumulative company gross profit, 5 years', type:'peso', v:m.cum.companyGP,
+    f:'Σ (companyRevenue[y] − companyCOGS[y])',
+    sub:`₱${G(Math.round(m.cum.companyRevenue))} − ₱${G(Math.round(m.cum.companyCOGS))} = ₱${G(Math.round(m.cum.companyGP))} (${pct(m.cum.companyGM)} blended)`,
+    deps:['markup','cogs_capsule','cogs_signature','cogs_masterpiece'], feeds:[] });
+  add('cumMelOpProfit', { title:'Cumulative Melbourne operating profit, 5 years', type:'peso', v:m.cum.melOpProfit,
+    f:'Year 1 from the itemised P&L, Years 2–5 as melRevenue × assumed operating margin',
+    sub:m.years.map(r=>'₱'+G(Math.round(r.melOpProfit))).join(' + ') + ' = ₱' + G(Math.round(m.cum.melOpProfit)),
+    deps:['opMarginY2','opMarginY3','opMarginY4','opMarginY5','melTargetY2','melTargetY3','melTargetY4','melTargetY5','opSpend','assets','amortYears','contingency'],
+    feeds:['cumMultiple'],
+    note:'Years 2–5 use a margin ramp, not an itemised budget. Only Year 1 is itemised — that is stated as an assumption, not dressed up as derived.' });
+  add('cumMultiple', { title:'Cumulative multiple on the programme ask', type:'x', v:m.cum.multiple,
+    f:'multiple = cumulative Melbourne operating profit ÷ programme ask',
+    sub:`₱${G(Math.round(m.cum.melOpProfit))} ÷ ₱${G(m.programme)} = ${m.cum.multiple.toFixed(1)}×`,
+    deps:['opMarginY2','opMarginY3','opMarginY4','opMarginY5','assets','opSpend','contingency'], feeds:[],
+    note:'Melbourne only, against the Melbourne-only ask. Domestic profit is excluded on purpose.' });
+
+  // ---- per-year rows
+  m.years.forEach(r=>{
+    const y = r.year;
+    add('y'+y+'_util', { title:`Year ${y} loom-day utilisation`, type:'pct', v:r.util,
+      f:'utilisation = (Melbourne loom-days + domestic loom-days) ÷ ceiling',
+      sub:`(${G(r.melLoomDays)} + ${G(r.phLoomDays)}) ÷ ${G(r.ceiling)} = ${G(r.used)} ÷ ${G(r.ceiling)} = ${pct(r.util)}`,
+      deps:['loomDaysPerWeaver','weavers','weaversY2','weaversY3','weaversY4','weaversY5','melTargetY'+y,'phGrowth'].filter(k=>INBY[k]),
+      feeds:[],
+      note: y===2 ? 'This is the year the cap actually bites. 97.8% on the same 29 weavers is functionally maxed out — which is the honest reason Year 3 needs 16 new weavers, rather than "we chose to grow".' : undefined });
+    add('y'+y+'_melRev', { title:`Year ${y} Melbourne revenue`, type:'peso', v:r.melRevenue,
+      f: y===1 ? 'Σ (units[tier] × price[tier])'
+               : 'units[tier] = round(target × Year-1 tier ratio), then Σ (units × price)',
+      sub: y===1 ? `₱${G(Math.round(r.melRevenue))}`
+        : TIERS.map(t=>`${G(r.melTU[t.key])}×${G(m.price[t.key])}`).join(' + ') + ` = ₱${G(Math.round(r.melRevenue))}`,
+      deps:['markup','melTargetY'+y].filter(k=>INBY[k]||k==='markup'), feeds:['cumMelRevenue'] });
+    add('y'+y+'_phRev', { title:`Year ${y} domestic revenue`, type:'peso', v:r.phRevenue,
+      f: y===1 ? 'from the loom-day allocation' : 'phTotal[y] = round(phTotal[y−1] × (1 + growth)), re-split by tier mix',
+      sub: y===1 ? `₱${G(Math.round(r.phRevenue))}`
+        : `${G(r.phUnits)} units → ` + TIERS.map(t=>`${G(r.phTU[t.key])}×${G(m.price[t.key])}`).join(' + ') + ` = ₱${G(Math.round(r.phRevenue))}`,
+      deps:['phAlloc','phGrowth','markup'], feeds:['cumPhRevenue'] });
+    add('y'+y+'_op', { title:`Year ${y} Melbourne operating profit`, type:'signed', v:r.melOpProfit,
+      f: y===1 ? 'from the itemised Year-1 P&L' : 'melOpProfit = melRevenue × assumed operating margin',
+      sub: y===1 ? `${G(Math.round(r.melGP))} − ${G(s.opSpend)} − ${G(Math.round(m.amort))} − ${G(s.contingency)} = ₱${G(Math.round(r.melOpProfit))} (${pct(r.opMargin)} of revenue, itemised)`
+        : `₱${G(Math.round(r.melRevenue))} × ${pct(r.opMargin,0)} = ₱${G(Math.round(r.melOpProfit))} (assumed margin)`,
+      deps: y===1 ? ['opSpend','assets','amortYears','contingency'] : ['opMarginY'+y,'melTargetY'+y],
+      feeds:['cumMelOpProfit','cumMultiple'] });
+    add('y'+y+'_perWeaver', { title:`Year ${y} income per weaver`, type:'peso', v:r.perWeaver,
+      f:'perWeaver = (total loom-days used × weaver rate) ÷ weavers that year',
+      sub:`(${G(r.used)} × ₱${G(s.weaverRate)}) ÷ ${G(r.weavers)} = ₱${G(Math.round(r.perWeaver))}, at ${r.daysWorked.toFixed(0)} of ${G(s.loomDaysPerWeaver)} days`,
+      deps:['weaverRate','weavers','weaversY2','weaversY3','weaversY4','weaversY5','loomDaysPerWeaver'].filter(k=>INBY[k]),
+      feeds:[],
+      note: y>=3 ? 'Per-weaver income falls here because new weavers are trained ahead of demand — the same work is shared across a wider base. Total livelihood paid out still rises every year. Say this before a judge finds it.' : undefined });
+  });
+  add('totalLivelihoodY5', { title:'Total weaver livelihood, Year 5', type:'peso', v:m.years[4].labour,
+    f:'labour = total loom-days used × weaver rate',
+    sub:`${G(m.years[4].used)} × ₱${G(s.weaverRate)} = ₱${G(Math.round(m.years[4].labour))}`,
+    deps:['weaverRate','loomDaysPerWeaver'], feeds:[],
+    note:'Total livelihood created and weaver count are the figures that hold up across all five years; income per weaver does not rise monotonically — see the Year-3 note.' });
+
+  // ---- sensitivity
+  m.sens.forEach((x,i)=>{
+    const id = ['sensLow','sensBase','sensHigh'][i];
+    add(id+'_units', { title:`${x.rate}% sell-through — units`, type:'num', v:x.units,
+      f:'units[tier] = round(Year-1 units[tier] × rate ÷ base rate)',
+      sub:TIERS.map(t=>`round(${G(m.melU[t.key])}×${(x.rate/s.sellThrough).toFixed(4)})`).join(' + ') + ` = ${G(x.units)}`,
+      deps:['mel_capsule','mel_signature','mel_masterpiece','sellThrough'], feeds:[id+'_rev'] });
+    add(id+'_rev', { title:`${x.rate}% sell-through — revenue`, type:'peso', v:x.rev,
+      f:'revenue = Σ (scaled units × price)',
+      sub:`${G(x.units)} units → ₱${G(Math.round(x.rev))}`,
+      deps:['sellThrough','markup'], feeds:[id+'_gp'] });
+    add(id+'_gp', { title:`${x.rate}% sell-through — gross profit`, type:'peso', v:x.gp,
+      f:'gp = revenue − COGS',
+      sub:`₱${G(Math.round(x.rev))} − ₱${G(Math.round(x.cogs))} = ₱${G(Math.round(x.gp))}`,
+      deps:['sellThrough','markup','cogs_capsule','cogs_signature','cogs_masterpiece'], feeds:[id+'_op'] });
+    add(id+'_op', { title:`${x.rate}% sell-through — operating profit`, type:'signed', v:x.op,
+      f:'op = gp − operating spend − amortisation − contingency',
+      sub:`${G(Math.round(x.gp))} − ${G(s.opSpend)} − ${G(Math.round(m.amort))} − ${G(s.contingency)} = ${G(Math.round(x.op))}`,
+      deps:['sellThrough','opSpend','assets','amortYears','contingency'], feeds:[],
+      note: i===0 ? (x.op > 0
+        ? `The low case still clears zero at ${fmt(x.op,'signed')}, so the plan is profitable even if only ${x.rate}% of the drop sells.`
+        : `At ${x.rate}% sell-through the pilot does NOT cover its costs — ${fmt(x.op,'signed')}. Break-even is ${pct(m.breakeven)}.`)
+        : undefined });
+  });
+
+  T._BM = BM;
+  return T;
+}
+let TR = {};
+
+/* =======================================================================
+   6 · INPUT PANEL RENDERING
+   ======================================================================= */
+function tagHTML(t){ return `<span class="tag ${TAGCLS[t]}">${TAGNAME[t]}</span>`; }
+
+function buildInputs(){
+  const host = document.getElementById('inputHost');
+  const groups = [];
+  IN.forEach(i => { if (!groups.includes(i.g)) groups.push(i.g); });
+  let html = '';
+  groups.forEach(gname => {
+    const rows = IN.filter(i => i.g === gname);
+    const collapsed = gname === 'Growth and projection';
+    html += `<details class="panel px-3 py-2.5" ${collapsed?'':'open'}>
+      <summary class="cursor-pointer list-none flex items-center justify-between">
+        <h3 class="sec">${gname}</h3><span style="color:var(--muted)">▾</span></summary>
+      ${collapsed?`<p class="text-[10.5px] mt-1.5" style="color:var(--muted)">Sell-through drives the sensitivity panel and the February gate. The rest feeds the five-year view arriving in the next build — they are listed here and in the audit so nothing is hidden.</p>`:''}
+      <div class="mt-2.5 space-y-3">${rows.map(inputRow).join('')}</div>
+    </details>`;
+    if (gname === 'Product and pricing') html += tierEditor();
+  });
+  host.innerHTML = html;
+
+  host.querySelectorAll('[data-in]').forEach(el => {
+    el.addEventListener('input', e => {
+      const k = e.target.dataset.in;
+      let v = parseFloat(e.target.value);
+      if (isNaN(v)) return;
+      const d = INBY[k];
+      if (d && d.min !== undefined && e.target.type === 'number'){
+        v = Math.max(d.min, Math.min(d.max, v));
+      }
+      S[k] = v;
+      syncPair(k);
+      schedule();
+    });
+  });
+  host.querySelectorAll('[data-in]').forEach(el=>{
+    el.addEventListener('focus', ()=> markDeps([el.dataset.in]));
+    el.addEventListener('blur',  ()=> clearDeps());
+  });
+}
+function inputRow(i){
+  const v = S[i.k];
+  return `<div>
+    <div class="flex items-start justify-between gap-2">
+      <label class="lbl leading-tight" for="n_${i.k}">${i.label}</label>${tagHTML(i.tag)}
+    </div>
+    <div class="flex items-center gap-2 mt-1">
+      <input type="range" data-in="${i.k}" data-role="r" min="${i.min}" max="${i.max}" step="${i.step}"
+             value="${v}" aria-label="${i.label} slider" tabindex="-1">
+      <input type="number" id="n_${i.k}" data-in="${i.k}" data-role="n" min="${i.min}" max="${i.max}" step="${i.step}"
+             value="${v}" class="!w-[92px] shrink-0" aria-label="${i.label}">
+    </div>
+    <div class="text-[10px] mt-0.5" style="color:var(--muted)">${i.src}</div>
+  </div>`;
+}
+function tierEditor(){
+  return `<details class="panel px-3 py-2.5" open>
+    <summary class="cursor-pointer list-none flex items-center justify-between">
+      <h3 class="sec">Tier table — loom-days, cost, base price</h3><span style="color:var(--muted)">▾</span></summary>
+    <div class="overflow-x-auto mt-2">
+      <table class="w-full text-[11px]">
+        <thead><tr class="text-left" style="color:var(--muted)">
+          <th class="pr-1.5 font-medium">Tier</th><th class="px-1 font-medium">Loom-days ${tagHTML('E')}</th>
+          <th class="px-1 font-medium">COGS ${tagHTML('E')}</th><th class="pl-1 font-medium">Base price ${tagHTML('D')}</th>
+        </tr></thead>
+        <tbody>${TIERS.map(t=>`<tr>
+          <td class="pr-1.5 py-1 font-medium">${t.name}</td>
+          <td class="px-1 py-1"><input type="number" data-in="ld_${t.key}" data-role="n" min="1" max="60" step="1" value="${S['ld_'+t.key]}" aria-label="${t.name} loom-days"></td>
+          <td class="px-1 py-1"><input type="number" data-in="cogs_${t.key}" data-role="n" min="0" max="200000" step="500" value="${S['cogs_'+t.key]}" aria-label="${t.name} COGS"></td>
+          <td class="pl-1 py-1"><input type="number" data-in="base_${t.key}" data-role="n" min="0" max="400000" step="500" value="${S['base_'+t.key]}" aria-label="${t.name} base price"></td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>
+    <div class="text-[10px] mt-1.5" style="color:var(--muted)">Loom-days and COGS are team estimates — Gate 1 in October 2026 measures real loom hours. Base price is pre-markup.</div>
+  </details>`;
+}
+function syncPair(k){
+  document.querySelectorAll(`[data-in="${k}"]`).forEach(el => { if (el.value != S[k]) el.value = S[k]; });
+}
+function syncAllInputs(){ Object.keys(S).forEach(syncPair); }
+
+/* =======================================================================
+   7 · NUMBER TWEENING
+   ======================================================================= */
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const prev = {};
+function setMetric(el, id, value, type){
+  // Tweening is decoration. The displayed figure must equal the model even if
+  // rAF never fires (backgrounded tab, throttled renderer) — so the final value
+  // is always written, and the animation only fills the 250ms in between.
+  const direct = reduce || document.hidden || prev[id] === undefined
+              || !isFinite(value) || !isFinite(prev[id]) || prev[id] === value;
+  const from = prev[id], to = value;
+  prev[id] = value;
+  el.textContent = fmt(to, type);
+  if (direct) return;
+  if (el._raf) cancelAnimationFrame(el._raf);
+  const t0 = performance.now(), dur = 250;
+  const step = now => {
+    const p = Math.min(1, (now - t0)/dur);
+    if (prev[id] !== to){ el._raf = null; return; }  // superseded by a newer value
+    const e = 1 - Math.pow(1-p, 3);
+    el.textContent = fmt(p < 1 ? from + (to-from)*e : to, type);
+    if (p < 1) el._raf = requestAnimationFrame(step);
+  };
+  el._raf = requestAnimationFrame(step);
+}
+
+/* =======================================================================
+   8 · OUTPUT RENDERING
+   ======================================================================= */
+function render(){
+  M = compute(S);
+  TR = traceDefs(S, M);
+
+  // static structures that depend on tier count / benchmarks
+  renderTiers();
+  renderPnl();
+  renderAsk();
+  renderBench();
+  renderYears();
+  renderWeaverYears();
+  renderSens();
+  renderMarkupCompare();
+  renderShareBar();
+  renderWeaverNote();
+  renderBeNote();
+  renderCompanyNote();
+  renderFigureIndex();
+  renderAudit();
+
+  // fill every [data-id] from the trace registry
+  document.querySelectorAll('[data-id]').forEach(el => {
+    const t = TR[el.dataset.id];
+    if (!t) return;
+    setMetric(el, el.dataset.id, t.v, t.type);
+    el.setAttribute('title', 'Click to see the working');
+    el.setAttribute('aria-label', t.title + ': ' + fmt(t.v, t.type));
+  });
+
+  renderCapacity();
+  renderBreachFix();
+  renderPayback();
+  renderTornado();
+  renderGrid();
+  if (MC && mcStamp !== stateStamp()) document.getElementById('mcStale').classList.remove('hidden');
+  if (!MC) renderMC();
+  chartRevenue(); chartUtil(); chartWaterfall(); chartSens();
+  document.getElementById('mkEcho').textContent = '(incl. ' + S.markup + '% markup)';
+  document.getElementById('mkNow').textContent = S.markup + '%';
+  document.getElementById('phSplit').textContent =
+    TIERS.map(t => M.phU[t.key]).join(' / ');
+  document.getElementById('gateOf').textContent = grp(M.melU.capsule);
+
+  // undeliverable overlay
+  const bad = M.state === 'breach';
+  document.querySelectorAll('#melBlock .metric, #pnlOut .metric, .metric[data-id="opProfit"]').forEach(el=>{
+    el.classList.toggle('undeliverable', bad && (el.dataset.id==='melRevenue' || el.dataset.id==='opProfit' || el.dataset.id==='pnl_rev' || el.dataset.id==='pnl_op'));
+  });
+
+  updateModBadge();
+  if (openTrace) showTrace(openTrace);
+}
+
+function renderTiers(){
+  document.getElementById('tierOut').innerHTML = TIERS.map(t => `<tr style="border-top:1px solid var(--line)">
+    <td class="py-1.5 pr-2 font-medium">${t.name}</td>
+    <td class="py-1.5 px-2 text-right">${grp(M.ld[t.key])}</td>
+    <td class="py-1.5 px-2 text-right">${money(M.cogs[t.key])}</td>
+    <td class="py-1.5 px-2 text-right" style="color:var(--muted)">${money(M.base[t.key])}</td>
+    <td class="py-1.5 px-2 text-right font-semibold"><span class="metric" data-id="price_${t.key}" tabindex="0" role="button"></span></td>
+    <td class="py-1.5 px-2 text-right"><span class="metric" data-id="gpu_${t.key}" tabindex="0" role="button"></span></td>
+    <td class="py-1.5 pl-2 text-right font-semibold"><span class="metric" data-id="gm_${t.key}" tabindex="0" role="button"></span></td>
+  </tr>`).join('');
+}
+function renderPnl(){
+  const rows = [
+    ['Melbourne revenue','pnl_rev',''],
+    ['less COGS','pnl_cogs','muted'],
+    ['Gross profit','pnl_gp','bold'],
+    ['less operating spend','pnl_ops','muted'],
+    ['less amortisation of assets','pnl_amort','muted'],
+    ['less contingency','pnl_cont','muted'],
+    ['Operating profit','pnl_op','strong'],
+    ['Operating margin on revenue','pnl_opm','']
+  ];
+  document.getElementById('pnlOut').innerHTML = rows.map(r=>{
+    const strong = r[2]==='strong', bold = r[2]==='bold';
+    return `<tr style="border-top:1px solid var(--line)">
+      <td class="py-1.5 pr-2 ${r[2]==='muted'?'pl-3':''}" style="${r[2]==='muted'?'color:var(--muted)':''}">${r[0]}</td>
+      <td class="py-1.5 text-right ${strong?'font-bold text-[15px] pos':bold?'font-bold pos':'font-medium'}">
+        <span class="metric" data-id="${r[1]}" tabindex="0" role="button"></span></td>
+    </tr>`;
+  }).join('');
+}
+function renderAsk(){
+  const rows = [
+    ['Assets','assetsEcho'], ['Operating spend','pnl_ops'], ['Contingency','pnl_cont'],
+    ['Programme ask','programme'], ['Working capital','ask_wc'], ['Total facility','facility']
+  ];
+  document.getElementById('askOut').innerHTML = rows.map((r,i)=>{
+    const head = r[1]==='programme' || r[1]==='facility';
+    return `<div class="flex justify-between ${head?'pt-1.5':''}" style="${head?'border-top:1px solid var(--line)':''}">
+      <span style="color:${head?'var(--text)':'var(--muted)'}">${r[0]}</span>
+      <span class="metric ${head?'font-bold':''}" data-id="${r[1]}" tabindex="0" role="button"></span></div>`;
+  }).join('');
+}
+function renderBench(){
+  document.getElementById('benchOut').innerHTML = TR._BM.map((b,i)=>`<tr style="border-top:1px solid var(--line)">
+    <td class="py-1.5 pr-2">${b.n}</td>
+    <td class="py-1.5 px-2 text-right" style="color:var(--muted)">${money(b.v)}</td>
+    <td class="py-1.5 pl-2 text-right font-semibold ${S.weaverRate>=b.v?'pos':'neg'}">
+      <span class="metric" data-id="bm_${i}" tabindex="0" role="button"></span></td>
+  </tr>`).join('') + `<tr style="border-top:1px solid var(--line)">
+    <td class="py-1.5 pr-2 font-medium">Our weaver rate</td>
+    <td class="py-1.5 px-2 text-right font-semibold">${money(S.weaverRate)}</td>
+    <td class="py-1.5 pl-2 text-right" style="color:var(--muted)">per loom-day</td></tr>`;
+}
+function renderCapacity(){
+  const bar = document.getElementById('capBar');
+  const scale = Math.max(M.ceiling, M.totalUsed) || 1;
+  const w = v => (v/scale*100);
+  // Only label a segment when the label actually fits it — a clipped "374 spa…"
+  // is worse than no label. The legend under the bar carries every figure anyway.
+  const px = bar.clientWidth || 600;
+  const fits = (v, text) => (w(v)/100)*px >= text.length * 6.2 + 8;
+  const seg = (cls, v, text) => v <= 0 ? ''
+    : `<div class="capseg ${cls}" style="width:${w(v)}%">${fits(v,text) ? text : ''}</div>`;
+  let segs = '';
+  segs += seg('seg-mel',  M.melLoomDays, 'MEL ' + grp(M.melLoomDays));
+  segs += seg('seg-ph',   M.phLoomDays,  'PH ' + grp(M.phLoomDays));
+  segs += seg('seg-free', M.headroom,    grp(M.headroom) + ' spare');
+  segs += seg('seg-over', M.overBy,      'OVER ' + grp(M.overBy));
+  bar.innerHTML = segs;
+  bar.setAttribute('aria-label',
+    `Melbourne ${M.melLoomDays}, domestic ${M.phLoomDays}, ${M.headroom>=0?'headroom '+M.headroom:'over by '+M.overBy} of a ${M.ceiling} loom-day ceiling. Utilisation ${pct(M.util)}.`);
+
+  const chip = document.getElementById('utilChip');
+  const bB = document.getElementById('breachBanner'), tB = document.getElementById('tightBanner');
+  bB.classList.add('hidden'); tB.classList.add('hidden');
+  if (M.state === 'breach'){
+    chip.className = 'tag ml-1 align-middle'; chip.style.cssText =
+      'color:#fff;background:var(--crimson);border-color:var(--crimson)'; chip.textContent = '🔴 BREACH';
+    bB.classList.remove('hidden');
+    bB.textContent = `This plan needs ${grp(M.overBy)} loom-days more than ${grp(S.weavers)} weavers can produce. `
+      + `Either reduce units, raise the weaver count, or accept it cannot be delivered.`;
+  } else if (M.state === 'tight'){
+    chip.className = 'tag tag-e ml-1 align-middle'; chip.style.cssText=''; chip.textContent = '🟡 TIGHT';
+    tB.classList.remove('hidden');
+    tB.textContent = 'Almost no room for reweaving, custom sizing or rest days.';
+  } else {
+    chip.className = 'tag tag-v ml-1 align-middle'; chip.style.cssText=''; chip.textContent = '🟢 IN BOUNDS';
+  }
+  // domestic mix sanity
+  if (M.mixSum !== 100){
+    tB.classList.remove('hidden');
+    tB.textContent = (tB.textContent ? tB.textContent + ' ' : '')
+      + `Domestic tier mix totals ${M.mixSum}%, not 100% — the domestic block is being computed on that mix as entered.`;
+  }
+}
+function renderAudit(){
+  const order = {E:0, D:1, V:2};
+  const rows = ALL_IN.slice().sort((a,b)=> order[a.tag]-order[b.tag] || a.label.localeCompare(b.label));
+  document.getElementById('auditOut').innerHTML = rows.map(i=>{
+    const changed = S[i.k] !== DEFAULTS[i.k];
+    const u = i.unit || '';
+    return `<tr style="border-top:1px solid var(--line)">
+      <td class="py-1.5 pr-2">${i.label}</td>
+      <td class="py-1.5 px-2">${tagHTML(i.tag)}</td>
+      <td class="py-1.5 px-2 text-right" style="color:var(--muted)">${grp(DEFAULTS[i.k], DEFAULTS[i.k]%1?1:0)}${u}</td>
+      <td class="py-1.5 px-2 text-right ${changed?'font-bold':''}" style="${changed?'color:var(--clay-light)':''}">${grp(S[i.k], S[i.k]%1?1:0)}${u}${changed?' *':''}</td>
+      <td class="py-1.5 px-2" style="color:var(--muted)">${i.src}</td>
+      <td class="py-1.5 pl-2 leading-snug">${i.breaks}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ---- new-section renderers ---------------------------------------------- */
+function stateTag(st){
+  if (st==='breach') return `<span class="tag" style="color:#fff;background:var(--crimson);border-color:var(--crimson)">🔴 BREACH</span>`;
+  if (st==='tight')  return `<span class="tag tag-e">🟡 TIGHT</span>`;
+  return `<span class="tag tag-v">🟢 OK</span>`;
+}
+function renderYears(){
+  document.getElementById('yearOut').innerHTML = M.years.map(r=>{
+    const hot = r.state !== 'ok';
+    return `<tr style="border-top:1px solid var(--line);${hot?'background:var(--warn-bg)':''}">
+      <td class="py-1.5 pr-2 font-semibold">${r.year}</td>
+      <td class="py-1.5 px-2 text-right">${grp(r.weavers)}${r.newWeavers>0?`<span class="text-[10px] pos"> +${r.newWeavers}</span>`:''}</td>
+      <td class="py-1.5 px-2 text-right" style="color:var(--muted)">${grp(r.ceiling)}</td>
+      <td class="py-1.5 px-2 text-right">${grp(r.melUnits)}</td>
+      <td class="py-1.5 px-2 text-right font-semibold s-mel"><span class="metric" data-id="y${r.year}_melRev" tabindex="0" role="button"></span></td>
+      <td class="py-1.5 px-2 text-right">${grp(r.phUnits)}</td>
+      <td class="py-1.5 px-2 text-right font-semibold s-ph"><span class="metric" data-id="y${r.year}_phRev" tabindex="0" role="button"></span></td>
+      <td class="py-1.5 px-2 text-right" style="color:var(--muted)">${grp(r.used)}</td>
+      <td class="py-1.5 px-2 text-right font-semibold">
+        <span class="metric" data-id="y${r.year}_util" tabindex="0" role="button"></span>
+        ${hot?' '+stateTag(r.state):''}</td>
+      <td class="py-1.5 px-2 text-right font-semibold pos"><span class="metric" data-id="y${r.year}_op" tabindex="0" role="button"></span></td>
+      <td class="py-1.5 pl-2 text-right">${money(r.companyRev)}</td>
+    </tr>`;
+  }).join('');
+  const b = M.bindingYear;
+  document.getElementById('bindNote').innerHTML =
+    `<strong>Year ${b.year} is the year the cap bites — ${pct(b.util)} utilisation.</strong> `
+    + (b.year===2
+      ? `On the same ${grp(S.weavers)} weavers that is functionally maxed out, which is the honest reason Year 3 needs `
+        + `${grp(M.years[2].newWeavers)} new weavers: the plan runs out of looms before it runs out of demand. `
+        + `Utilisation eases from Year 3 because weavers are trained ahead of demand, not exactly to it.`
+      : `Every year is constraint-checked against its own ceiling, not just Year 1.`);
+}
+function renderWeaverYears(){
+  const rows = [
+    ['Weavers', r=>grp(r.weavers)],
+    ['Loom-days worked each', r=>r.daysWorked.toFixed(0) + ' of ' + grp(S.loomDaysPerWeaver)],
+    ['Income per weaver', r=>`<span class="metric" data-id="y${r.year}_perWeaver" tabindex="0" role="button"></span>`],
+    ['Total livelihood paid', r=>money(r.labour)]
+  ];
+  document.getElementById('weaverYearOut').innerHTML =
+    `<tr style="color:var(--muted)"><th class="text-left py-1 pr-2 font-medium"></th>`
+    + M.years.map(r=>`<th class="py-1 px-2 font-medium text-right">Yr ${r.year}</th>`).join('') + `</tr>`
+    + rows.map(([label,get])=>`<tr style="border-top:1px solid var(--line)">
+        <td class="py-1.5 pr-2" style="color:var(--muted)">${label}</td>
+        ${M.years.map(r=>`<td class="py-1.5 px-2 text-right ${label==='Income per weaver'?'font-semibold':''}">${get(r)}</td>`).join('')}
+      </tr>`).join('');
+}
+/* Narrative that re-derives itself.
+   These paragraphs used to assert fixed conclusions ("income peaks in Year 2",
+   "far below the bear case", "domestic is the larger market"). Every one of those
+   can be falsified by moving a slider, so each is now computed from the model and
+   states whichever conclusion is actually true of the current inputs. */
+function renderWeaverNote(){
+  const el = document.getElementById('weaverNote');
+  const peak = M.years.reduce((b,r)=> r.perWeaver > b.perWeaver ? r : b, M.years[0]);
+  const last = M.years[4], first = M.years[0];
+  const livelihoodRises = M.years.every((r,i)=> i===0 || r.labour >= M.years[i-1].labour - 0.5);
+  const falls = last.perWeaver < peak.perWeaver - 0.5;
+  const hireYears = M.years.filter(r=>r.newWeavers > 0);
+  const dir = last.perWeaver > first.perWeaver + 0.5 ? 'higher than' :
+              last.perWeaver < first.perWeaver - 0.5 ? 'below' : 'level with';
+  let html;
+  if (falls && hireYears.length){
+    el.style.cssText = 'background:var(--warn-bg); border:1px solid var(--warn)';
+    html = `<strong>Worth stating before anyone asks.</strong> Income <em>per weaver</em> peaks in `
+      + `<strong>Year ${peak.year}</strong> at ${money(peak.perWeaver)} and then falls to ${money(last.perWeaver)} by Year 5 — `
+      + `${dir} Year 1 — because ${hireYears.map(r=>`${grp(r.newWeavers)} new weavers join in Year ${r.year}`).join(' and ')} `
+      + `ahead of the demand that will fill their looms, so the same work is shared across a wider base.`;
+  } else if (falls){
+    el.style.cssText = 'background:var(--warn-bg); border:1px solid var(--warn)';
+    html = `<strong>Worth stating before anyone asks.</strong> Income per weaver peaks in Year ${peak.year} at `
+      + `${money(peak.perWeaver)} and ends at ${money(last.perWeaver)}, because loom-days per weaver are the binding `
+      + `constraint rather than headcount.`;
+  } else {
+    el.style.cssText = 'background:var(--ok-bg); border:1px solid rgba(76,122,53,.45)';
+    html = `On these assumptions income per weaver rises across the whole period, from ${money(first.perWeaver)} `
+      + `in Year 1 to ${money(last.perWeaver)} in Year 5, peaking in Year ${peak.year}.`;
+  }
+  html += ` <strong>Total livelihood paid out ${livelihoodRises ? 'rises every single year' : 'does not rise monotonically on these inputs'}</strong>`
+    + ` (${money(first.labour)} → ${money(last.labour)}), and the weaver count goes ${grp(first.weavers)} → ${grp(last.weavers)}.`
+    + ` The figures that hold up across every year are total livelihood created and weavers employed, rather than income per head.`;
+  el.innerHTML = html;
+}
+function renderBeNote(){
+  const el = document.getElementById('beNote');
+  const low = M.sens[0], base = M.sens[1];
+  const be = M.breakeven * 100;
+  let html = `Operating profit crosses zero at a ${pct(M.breakeven)} sell-through`;
+  if (M.melGP <= 0){
+    el.innerHTML = `At these inputs Melbourne gross profit is not positive, so there is no sell-through rate at which the pilot covers its costs. That is the constraint to fix before anything else.`;
+    return;
+  }
+  html += be < low.rate
+    ? ` — <strong>below the ${low.rate}% low case</strong>, which is why that case still clears a profit `
+      + `(${fmt(low.op,'signed')}).`
+    : ` — <strong>above the ${low.rate}% low case</strong>, so at ${low.rate}% sell-through the pilot does not cover `
+      + `its costs (${fmt(low.op,'signed')}). That is the number to plan against.`;
+  html += ` Every peso of fixed load — operating spend, amortisation and contingency, `
+    + `${money(M.fixedLoad)} in total — has to be covered by gross profit before this crosses.`;
+  el.innerHTML = html;
+}
+function renderCompanyNote(){
+  const bigger = M.phRevenue > M.melRevenue ? 'Domestic' : M.melRevenue > M.phRevenue ? 'Melbourne' : null;
+  const other  = bigger === 'Domestic' ? 'the Melbourne pilot' : 'the domestic line';
+  document.getElementById('companyNote').innerHTML =
+    (bigger
+      ? `<strong>${bigger} is the larger market</strong> on these inputs — ${pct(bigger==='Domestic'?M.phShare:M.melShare)} `
+        + `of company revenue against ${pct(bigger==='Domestic'?M.melShare:M.phShare)} for ${other}. `
+      : `The two markets are the same size on these inputs, at ${pct(M.phShare)} each. `)
+    + `That is a consequence of the loom-day allocation — the existing, self-funding business gets first claim on the `
+    + `looms and the pilot is built from what is left — not a share chosen in advance. Change the domestic allocation `
+    + `and this split moves. The ${money(M.programme)} ask does <strong>not</strong> buy ${money(M.companyRevenue)} of revenue.`;
+}
+function renderSens(){
+  const ids = ['sensLow','sensBase','sensHigh'];
+  document.getElementById('sensOut').innerHTML = M.sens.map((x,i)=>`
+    <div class="p-3 rounded" style="background:${x.isBase?'var(--raised)':'transparent'}; border:1px solid ${x.isBase?'var(--label)':'var(--line)'}">
+      <div class="flex items-baseline justify-between">
+        <div class="lbl">${x.rate}% sell-through</div>
+        ${x.isBase?'<span class="tag tag-d">BASE</span>':''}
+      </div>
+      <div class="mt-1.5 space-y-1 text-[12px]">
+        <div class="flex justify-between"><span style="color:var(--muted)">Units</span><span class="metric font-semibold" data-id="${ids[i]}_units" tabindex="0" role="button"></span></div>
+        <div class="flex justify-between"><span style="color:var(--muted)">Revenue</span><span class="metric" data-id="${ids[i]}_rev" tabindex="0" role="button"></span></div>
+        <div class="flex justify-between"><span style="color:var(--muted)">Gross profit</span><span class="metric" data-id="${ids[i]}_gp" tabindex="0" role="button"></span></div>
+        <div class="flex justify-between pt-1" style="border-top:1px solid var(--line)">
+          <span style="color:var(--muted)">Operating profit</span>
+          <span class="metric font-bold ${x.op>=0?'pos':'neg'}" data-id="${ids[i]}_op" tabindex="0" role="button"></span></div>
+      </div>
+    </div>`).join('');
+}
+function renderMarkupCompare(){
+  const zero = compute(Object.assign({}, S, {markup:0}));
+  const rows = [
+    ['Revenue, Melbourne', zero.melRevenue, M.melRevenue, 'peso'],
+    ['COGS', zero.melCOGS, M.melCOGS, 'peso'],
+    ['Gross profit', zero.melGP, M.melGP, 'peso'],
+    ['Gross margin', zero.melGM, M.melGM, 'pct'],
+    ['Operating profit', zero.opProfit, M.opProfit, 'signed'],
+    ['Gross profit per unit', zero.gpUnit, M.gpUnit, 'peso'],
+    ['GP : CAC', zero.ratio, M.ratio, 'x']
+  ];
+  document.getElementById('markupCompareOut').innerHTML = rows.map(([l,a,b,t])=>{
+    const same = Math.abs(a-b) < 0.005;
+    return `<tr style="border-top:1px solid var(--line)">
+      <td class="py-1.5 pr-2 ${l==='Operating profit'?'font-semibold':''}">${l}</td>
+      <td class="py-1.5 px-2 text-right" style="color:var(--muted)">${fmt(a,t)}</td>
+      <td class="py-1.5 pl-2 text-right font-semibold ${same?'':'pos'}">${fmt(b,t)}${same?' <span class="text-[10px]" style="color:var(--muted)">unchanged</span>':''}</td>
+    </tr>`;
+  }).join('');
+}
+function renderShareBar(){
+  document.getElementById('shareBar').innerHTML =
+    `<div class="capseg seg-ph" style="width:${M.phShare*100}%">PH ${pct(M.phShare)}</div>`
+  + `<div class="capseg seg-mel" style="width:${M.melShare*100}%">MEL ${pct(M.melShare)}</div>`;
+}
+function renderFigureIndex(){
+  const y = M.years, c = M.cum;
+  const map = [
+    ['Capacity',
+      `ceiling ${grp(M.ceiling)} loom-days · Melbourne ${grp(M.melLoomDays)} / ${grp(M.melUnits)} units / ${money(M.melRevenue)} · domestic ${grp(M.phLoomDays)} / ${grp(M.phUnits)} units / ${money(M.phRevenue)} · headroom ${grp(M.headroom)} (${pct(M.headroomShare)}) · utilisation ${pct(M.util)}`],
+    ['Pricing and margin',
+      TIERS.map(t=>`${t.name} ${money(M.price[t.key])} @ ${pct((M.price[t.key]-M.cogs[t.key])/M.price[t.key])}`).join(' · ')
+      + ` — at ${S.markup}% markup on the pre-markup base`],
+    ['Unit economics',
+      `GP ÷ CAC ${M.ratio.toFixed(1)}× · GP per unit ${money(M.gpUnit)} · CAC ${money(M.cac)} · break-even sell-through ${pct(M.breakeven)} · 90-day Capsule gate ${grp(M.gateUnits)} of ${grp(M.melU.capsule)}`],
+    ['Melbourne Year-1 P&L',
+      `revenue ${money(M.melRevenue)} · COGS ${money(M.melCOGS)} · gross profit ${money(M.melGP)} (${pct(M.melGM)}) · operating profit ${fmt(M.opProfit,'signed')} (${pct(M.opMargin)})`],
+    ['The ask',
+      `programme ${money(M.programme)} · total facility ${money(M.facility)} · working capital ${money(S.workingCapital)} · Year-1 amortisation ${money(M.amort)} · reconciliation gap ${money(M.reconGap)}`],
+    ['Weaver economics',
+      `${money(S.weaverRate)} per loom-day · ${money(M.perWeaver)} per weaver in Year 1 at ${M.daysWorked.toFixed(0)} of ${grp(S.loomDaysPerWeaver)} days · total livelihood ${money(M.labour)}`],
+    ['Five years, two markets',
+      y.map(r=>`Y${r.year} ${money(r.melRevenue)} / ${money(r.phRevenue)} @ ${pct(r.util)}`).join(' · ')],
+    ['Cumulative, five years',
+      `Melbourne ${money(c.melRevenue)} · domestic ${money(c.phRevenue)} · company ${money(c.companyRevenue)} · company gross profit ${money(c.companyGP)} (${pct(c.companyGM)}) · Melbourne operating profit ${money(c.melOpProfit)} = ${c.multiple.toFixed(1)}× the programme ask`],
+    ['Company trajectory',
+      `weavers ${grp(S.weavers)} → ${grp(y[4].weavers)} · company revenue ${money(M.companyRevenue)} → ${money(y[4].companyRev)} · total livelihood ${money(M.labour)} → ${money(y[4].labour)}`]
+  ];
+  document.getElementById('figureIndexOut').innerHTML = map.map(r=>`<tr style="border-top:1px solid var(--line)">
+    <td class="py-1.5 pr-2 align-top whitespace-nowrap" style="color:var(--muted)">${r[0]}</td>
+    <td class="py-1.5 pl-2 leading-snug">${r[1]}</td>
+  </tr>`).join('');
+}
+
+/* ---- breach resolver, payback ------------------------------------------- */
+function renderBreachFix(){
+  const el = document.getElementById('breachFix');
+  if (!M.fix){ el.classList.add('hidden'); return; }
+  el.classList.remove('hidden');
+  const f = M.fix;
+  const cut = TIERS.filter(t=>f.cutUnits[t.key] > 0)
+    .map(t=>`${grp(f.cutUnits[t.key])} ${t.name}`).join(' + ');
+  el.innerHTML = `<div class="font-semibold mb-1.5" style="color:var(--bad-ink)">Three ways to close the ${grp(M.overBy)}-loom-day gap:</div>`
+    + `<ol class="space-y-1.5 pl-4" style="list-style:decimal">`
+    + `<li><strong>Sell less.</strong> Cut Melbourne by ${grp(f.cutTotal)} units${cut?` (${cut})`:''} — `
+      + `or ${grp(f.capsuleOnly)} Capsule pieces alone, since each takes ${grp(M.ld.capsule)} loom-days.</li>`
+    + `<li><strong>Weave more.</strong> Add <strong>${grp(f.weaversNeeded)} weavers</strong> at `
+      + `${grp(S.loomDaysPerWeaver)} loom-days each — but a sellable, export-grade weaver is a multi-year `
+      + `apprenticeship, so this is not available inside the year.</li>`
+    + (f.shortOfDomestic > 0
+      ? `<li><strong>Take it from the domestic line.</strong> Even releasing the entire `
+        + `${grp(S.phAlloc)}-loom-day domestic allocation leaves you ${grp(f.shortOfDomestic)} loom-days short. `
+        + `At this volume the plan is undeliverable however capacity is split.</li>`
+      : `<li><strong>Take it from the domestic line.</strong> Release ${grp(f.loomDaysFromDomestic)} loom-days `
+        + `from the domestic allocation — about ${grp(f.domesticUnitsLost)} domestic garments — which means `
+        + `serving Kandama’s existing customers less in order to serve Melbourne more.</li>`)
+    + `</ol>`;
+}
+function renderPayback(){
+  const el = document.getElementById('paybackNote');
+  if (M.payback === null){
+    el.textContent = M.cum.melOpProfit > 0
+      ? `Cumulative operating profit of ${money(M.cum.melOpProfit)} never reaches the ${money(M.programme)} programme spend within five years.`
+      : `The pilot does not generate cumulative operating profit on these inputs, so there is no payback.`;
+    return;
+  }
+  el.textContent = `Cumulative Melbourne operating profit passes the ${money(M.programme)} programme spend `
+    + `during Year ${M.paybackYear}, at roughly month ${M.paybackMonths} of that year — assuming profit accrues `
+    + `evenly through the year, which is an approximation.`;
+}
+
+/* ---- robustness renderers ---------------------------------------------- */
+let TORN = null;
+function renderTornado(){
+  const sel = document.getElementById('tMetric');
+  if (!sel.options.length){
+    sel.innerHTML = Object.keys(TORNADO_METRICS)
+      .map(k=>`<option value="${k}">${TORNADO_METRICS[k].label}</option>`).join('');
+  }
+  const spread = Math.max(1, Math.min(60, parseFloat(document.getElementById('tSpread').value) || 20));
+  TORN = tornado(sel.value || 'opProfit', spread);
+  const host = document.getElementById('chartTornado');
+  const rows = TORN.rows.slice(0, 12);
+  if (!rows.length){ host.innerHTML = `<p class="text-[11.5px]" style="color:var(--muted)">Nothing moves this measure at ±${spread}%.</p>`; return; }
+  const rowH = 22, L = 190, R = 74, T = 18, W = 620;
+  const H = T + rows.length*rowH + 10;
+  const iw = W - L - R;
+  const maxSwing = Math.max(...rows.map(r=>Math.max(Math.abs(r.dLo), Math.abs(r.dHi)))) || 1;
+  const cx = L + iw/2;
+  const xs = d => cx + (d/maxSwing)*(iw/2);
+  const body = rows.map((r,i)=>{
+    const y = T + i*rowH;
+    const a = xs(r.dLo), b = xs(r.dHi);
+    const x0 = Math.min(a,b), w = Math.max(2, Math.abs(b-a));
+    const tagCol = r.tag==='E' ? 'var(--warn)' : r.tag==='V' ? 'var(--pos)' : 'var(--muted)';
+    const lab = r.label.length > 30 ? r.label.slice(0,29)+'…' : r.label;
+    return `<text x="${L-8}" y="${y+13}" text-anchor="end" fill="${tagCol}">${esc(lab)}</text>`
+      + `<rect x="${x0}" y="${y+4}" width="${w}" height="${rowH-9}" rx="3" fill="var(--s-mel)"
+           data-tip="${esc(`<strong>${r.label}</strong><br>${TAGNAME[r.tag]}<br>`
+             + `at ${grp(r.lo, r.lo%1?1:0)} → ${fmt(r.vLo, r.type)}<br>`
+             + `at ${grp(r.hi, r.hi%1?1:0)} → ${fmt(r.vHi, r.type)}<br>`
+             + `swing ${fmt(r.swing, r.type==='pct'?'pct':r.type==='x'?'x':'peso')}`)}"/>`
+      + `<text class="vlab" x="${L+iw+6}" y="${y+13}">${fmt(r.swing, r.type==='pct'?'pct':r.type==='x'?'x':'peso')}</text>`;
+  }).join('');
+  host.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"
+      aria-label="Sensitivity of ${TORN.metric.label} to each input flexed plus or minus ${spread} percent. Largest effects: ${rows.slice(0,3).map(r=>r.label).join(', ')}.">
+    <line class="axis" x1="${cx}" y1="${T-4}" x2="${cx}" y2="${T+rows.length*rowH}"/>
+    <text x="${cx}" y="${T-7}" text-anchor="middle">base ${fmt(TORN.base, TORN.metric.type)}</text>
+    ${body}
+  </svg>`;
+  wireTips(host);
+  const top = TORN.rows[0], est = TORN.rows.filter(r=>r.tag==='E');
+  document.getElementById('tornadoNote').innerHTML =
+    `At ±${spread}%, <strong>${esc(top.label)}</strong> moves ${TORN.metric.label.toLowerCase()} most — a swing of `
+    + `${fmt(top.swing, top.type==='pct'?'pct':top.type==='x'?'x':'peso')} against a base of ${fmt(TORN.base, TORN.metric.type)}. `
+    + (est.length && est[0].k === top.k
+        ? `It is tagged an estimate, which is exactly why it is the one to interrogate.`
+        : `The largest estimate-tagged driver is <strong>${esc((est[0]||top).label)}</strong>.`)
+    + ` Bars are ranked by swing; ${TORN.rows.length > 12 ? `the ${TORN.rows.length-12} inputs with smaller effects are not shown` : 'every input with any effect is shown'}.`;
+}
+function renderGrid(){
+  const g = twoWayGrid();
+  const span = (g.max - g.min) || 1;
+  const cell = c => {
+    if (c.breach) return `background:var(--crimson);color:#fff`;
+    if (c.op < 0)  return `background:var(--s-ph);color:#fff`;
+    const t = (c.op - Math.max(0,g.min)) / (span || 1);
+    return `background:rgba(76,122,53,${(0.22 + 0.62*Math.max(0,Math.min(1,t))).toFixed(2)});color:var(--text)`;
+  };
+  document.getElementById('gridOut').innerHTML =
+    `<thead><tr style="color:var(--muted)">
+       <th class="py-1 pr-2 text-left font-medium text-[10px]">loom-days<br>per weaver ↓ / sell-through →</th>
+       ${g.rateAxis.map(r=>`<th class="py-1 px-1 font-medium text-center">${r}%</th>`).join('')}
+     </tr></thead><tbody>`
+    + g.cells.map((row,ri)=>`<tr>
+        <th class="py-1 pr-2 text-left font-medium" style="color:var(--muted)">${grp(g.ldpwAxis[ri])}</th>
+        ${row.map(c=>`<td class="py-1 px-1 text-center" style="${cell(c)};${c.isBase?'outline:2px solid var(--cream);outline-offset:-2px':''}"
+              data-tip="${esc(`<strong>${grp(c.ldpw)} loom-days/weaver · ${c.rate}% sell-through</strong><br>`
+                + `${grp(c.units)} Melbourne units<br>operating profit ${fmt(c.op,'signed')}<br>`
+                + `utilisation ${pct(c.util)}${c.breach?' — UNDELIVERABLE':''}`)}">
+            ${c.breach ? '✕' : money(c.op).replace('₱','').replace('A$','')}</td>`).join('')}
+      </tr>`).join('') + `</tbody>`;
+  wireTips(document.getElementById('gridOut'));
+}
+let MC = null, mcStamp = null;
+function renderMC(){
+  const host = document.getElementById('mcOut');
+  if (!MC){
+    host.innerHTML = `<p class="text-[11.5px]" style="color:var(--muted)">
+      Not run yet. It samples ${MC_INPUTS.length} estimate-tagged inputs at ±<strong>${S.mcSpread}%</strong>
+      over <strong>${grp(S.mcTrials)}</strong> trials. Both settings are editable under
+      <em>Robustness settings</em> in the input panel.</p>`;
+    return;
+  }
+  const r = MC;
+  const W = 560, H = 150, L = 44, R = 12, T = 10, B = 30, bins = 26;
+  const lo = r.min, hi = r.max, sp = (hi-lo) || 1;
+  const counts = new Array(bins).fill(0);
+  r.ops.forEach(v=> counts[Math.min(bins-1, Math.floor(((v-lo)/sp)*bins))]++);
+  const maxC = Math.max(...counts) || 1;
+  const iw = W-L-R, ih = H-T-B, bw = iw/bins;
+  const xz = lo < 0 && hi > 0 ? L + ((0-lo)/sp)*iw : null;
+  const bars = counts.map((c,i)=>{
+    const h = (c/maxC)*ih, x = L + i*bw;
+    const mid = lo + (i+0.5)*sp/bins;
+    return `<rect x="${x+0.5}" y="${T+ih-h}" width="${Math.max(1,bw-1)}" height="${h}" rx="2"
+      fill="${mid < 0 ? 'var(--crimson)' : 'var(--s-mel)'}"
+      data-tip="${esc(`${grp(c)} of ${grp(r.trials)} trials near ${money(mid)}`)}"/>`;
+  }).join('');
+  host.innerHTML = `
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-[12.5px]">
+      <div><div class="lbl">Median (P50)</div><div class="text-base font-bold ${r.p50>=0?'pos':'neg'}">${fmt(r.p50,'signed')}</div></div>
+      <div><div class="lbl">Downside (P10)</div><div class="text-base font-bold ${r.p10>=0?'pos':'neg'}">${fmt(r.p10,'signed')}</div></div>
+      <div><div class="lbl">Upside (P90)</div><div class="text-base font-bold ${r.p90>=0?'pos':'neg'}">${fmt(r.p90,'signed')}</div></div>
+      <div><div class="lbl">Trials clearing zero</div><div class="text-base font-bold ${r.pProfit>=0.9?'pos':''}">${pct(r.pProfit,1)}</div>
+        <div class="text-[10.5px]" style="color:var(--muted)">undeliverable in ${pct(r.pBreach,1)}</div></div>
+    </div>
+    <figure class="m-0 mt-3">
+      <figcaption class="lbl mb-1">Distribution of Year-1 operating profit across ${grp(r.trials)} trials at ±${r.spread}%</figcaption>
+      <div class="chartScroll">
+        <svg class="chart" viewBox="0 0 ${W} ${H}" role="img"
+          aria-label="Histogram of operating profit over ${r.trials} simulated trials. Median ${money(r.p50)}, P10 ${money(r.p10)}, P90 ${money(r.p90)}. ${pct(r.pProfit,1)} of trials are profitable.">
+          ${bars}
+          ${xz!==null?`<line class="ref" x1="${xz}" y1="${T}" x2="${xz}" y2="${T+ih}"/><text x="${xz}" y="${T+ih+22}" text-anchor="middle" fill="var(--bad)">₱0</text>`:''}
+          <line class="axis" x1="${L}" y1="${T+ih}" x2="${L+iw}" y2="${T+ih}"/>
+          <text x="${L}" y="${T+ih+12}" text-anchor="start">${money(lo)}</text>
+          <text x="${L+iw}" y="${T+ih+12}" text-anchor="end">${money(hi)}</text>
+        </svg>
+      </div>
+    </figure>
+    <p class="text-[11.5px] mt-2 leading-relaxed">
+      Across ${grp(r.trials)} trials with ${r.sampled.length} estimates varying at once,
+      operating profit lands between ${money(r.p10)} and ${money(r.p90)} four times out of five, and clears zero in
+      <strong>${pct(r.pProfit,1)}</strong> of trials. Median loom-day utilisation is ${pct(r.utilP50)}, and
+      <strong>${pct(r.pBreach,1)}</strong> of trials cannot be delivered at all — which is the more useful warning,
+      because an undeliverable plan is a worse outcome than a thin one.
+    </p>
+    <details class="mt-2 text-[11px]">
+      <summary class="cursor-pointer" style="color:var(--muted)">Which inputs were varied</summary>
+      <div class="mt-1.5 flex flex-wrap gap-1.5">
+        ${r.sampled.map(k=>`<span class="tag tag-e">${esc(INBY[k].label)} ±${r.spread}%</span>`).join('')}
+      </div>
+      <p class="mt-1.5" style="color:var(--muted)">
+        Triangular distribution, mode at the current value, sampled independently. Everything else is held fixed.
+      </p>
+    </details>`;
+  wireTips(host);
+}
+function stateStamp(){ return JSON.stringify(S); }
+function runMC(){
+  const btn = document.getElementById('mcRun');
+  btn.textContent = 'Running…'; btn.disabled = true;
+  setTimeout(()=>{
+    MC = monteCarlo(); mcStamp = stateStamp();
+    renderMC(); document.getElementById('mcStale').classList.add('hidden');
+    btn.textContent = 'Re-run simulation'; btn.disabled = false;
+  }, 20);
+}
+
+/* ---- charts: inline SVG, hover tooltip, direct labels, legend ------------ */
+const tip = document.createElement('div'); tip.className = 'tip'; document.body.appendChild(tip);
+function showTip(html, ev){
+  tip.innerHTML = html; tip.classList.add('on');
+  const pad = 12, w = 240;
+  let x = ev.clientX + pad, yy = ev.clientY + pad;
+  if (x + w > window.innerWidth) x = ev.clientX - w - pad;
+  if (yy + 120 > window.innerHeight) yy = ev.clientY - 100;
+  tip.style.left = Math.max(4,x) + 'px'; tip.style.top = Math.max(4,yy) + 'px';
+}
+function hideTip(){ tip.classList.remove('on'); }
+function wireTips(host){
+  host.querySelectorAll('[data-tip]').forEach(el=>{
+    el.addEventListener('mousemove', e=>showTip(el.dataset.tip, e));
+    el.addEventListener('mouseleave', hideTip);
+  });
+}
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+
+function chartRevenue(){
+  const host = document.getElementById('chartRevenue');
+  const W = 560, H = 250, L = 52, R = 60, T = 16, B = 34;
+  const iw = W-L-R, ih = H-T-B;
+  const max = Math.max(...M.years.map(r=>Math.max(r.melRevenue, r.phRevenue))) * 1.12 || 1;
+  const x = i => L + (M.years.length===1 ? iw/2 : i*iw/(M.years.length-1));
+  const yv = v => T + ih - (v/max)*ih;
+  const ticks = 4;
+  let g = '';
+  for (let i=0;i<=ticks;i++){
+    const v = max*i/ticks, yy = yv(v);
+    g += `<line class="grid" x1="${L}" y1="${yy}" x2="${L+iw}" y2="${yy}"/>`
+       + `<text x="${L-6}" y="${yy+3}" text-anchor="end">${money(v)}</text>`;
+  }
+  const series = [
+    { key:'melRevenue', color:'var(--s-mel)', name:'Melbourne' },
+    { key:'phRevenue',  color:'var(--s-ph)',  name:'Domestic'  }
+  ];
+  let paths = '';
+  series.forEach(s2=>{
+    const pts = M.years.map((r,i)=>[x(i), yv(r[s2.key])]);
+    paths += `<polyline fill="none" stroke="${s2.color}" stroke-width="2" stroke-linejoin="round"
+                points="${pts.map(p=>p.join(',')).join(' ')}"/>`;
+    pts.forEach((p,i)=>{
+      paths += `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="${s2.color}" stroke="var(--panel)" stroke-width="2"/>`;
+    });
+    const last = pts[pts.length-1];
+    paths += `<text class="vlab" x="${last[0]+8}" y="${last[1]+3}" fill="${s2.color}">${money(M.years[4][s2.key])}</text>`;
+  });
+  let marks = '';
+  M.years.forEach((r,i)=>{
+    if (r.newWeavers > 0){
+      marks += `<line x1="${x(i)}" y1="${T}" x2="${x(i)}" y2="${T+ih}" stroke="var(--line-strong)" stroke-width="1" stroke-dasharray="2 3"/>`
+             + `<text x="${x(i)}" y="${T-4}" text-anchor="middle" class="vlab">+${r.newWeavers} weavers</text>`;
+    }
+  });
+  let hits = '';
+  M.years.forEach((r,i)=>{
+    const bw = iw/M.years.length;
+    hits += `<rect class="hit" x="${x(i)-bw/2}" y="${T}" width="${bw}" height="${ih}" data-tip="${esc(
+      `<strong>Year ${r.year}</strong><br>Melbourne ${money(r.melRevenue)} · ${grp(r.melUnits)}u<br>Domestic ${money(r.phRevenue)} · ${grp(r.phUnits)}u<br>Company ${money(r.companyRev)}<br>Utilisation ${pct(r.util)} of ${grp(r.ceiling)} loom-days`)}"/>`;
+  });
+  host.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"
+      aria-label="Melbourne and domestic revenue over five years. ${M.years.map(r=>`Year ${r.year}: Melbourne ${money(r.melRevenue)}, domestic ${money(r.phRevenue)}`).join('. ')}">
+    ${g}${marks}${paths}
+    <line class="axis" x1="${L}" y1="${T+ih}" x2="${L+iw}" y2="${T+ih}"/>
+    ${M.years.map((r,i)=>`<text x="${x(i)}" y="${T+ih+14}" text-anchor="middle">Yr ${r.year}</text>`).join('')}
+    <text x="${L}" y="${H-4}" fill="var(--s-mel)" class="vlab">● Melbourne</text>
+    <text x="${L+95}" y="${H-4}" fill="var(--s-ph)" class="vlab">● Philippines domestic</text>
+    ${hits}
+  </svg>`;
+  wireTips(host);
+}
+function chartUtil(){
+  const host = document.getElementById('chartUtil');
+  const W = 560, H = 250, L = 46, R = 16, T = 18, B = 34;
+  const iw = W-L-R, ih = H-T-B;
+  const max = Math.max(1.1, ...M.years.map(r=>r.util)) * 1.04;
+  const yv = v => T + ih - (v/max)*ih;
+  const bw = iw/M.years.length;
+  let g = '';
+  [0,0.25,0.5,0.75,1].forEach(v=>{
+    g += `<line class="grid" x1="${L}" y1="${yv(v)}" x2="${L+iw}" y2="${yv(v)}"/>`
+       + `<text x="${L-6}" y="${yv(v)+3}" text-anchor="end">${pct(v,0)}</text>`;
+  });
+  const col = st => st==='breach' ? 'var(--crimson)' : st==='tight' ? 'var(--warn)' : 'var(--s-free)';
+  const bars = M.years.map((r,i)=>{
+    const h = Math.max(2, (T+ih) - yv(r.util));
+    const bx = L + i*bw + bw*0.22, w2 = bw*0.56;
+    return `<rect x="${bx}" y="${yv(r.util)}" width="${w2}" height="${h}" rx="4" fill="${col(r.state)}"
+              data-tip="${esc(`<strong>Year ${r.year}</strong><br>${grp(r.used)} of ${grp(r.ceiling)} loom-days<br>${pct(r.util)} utilisation — ${r.state==='ok'?'in bounds':r.state}<br>${r.weavers} weavers${r.newWeavers>0?` (+${r.newWeavers})`:''}<br>headroom ${grp(r.headroom)}`)}"/>`
+         + `<text class="vlab" x="${bx+w2/2}" y="${yv(r.util)-5}" text-anchor="middle">${pct(r.util,0)}</text>`;
+  }).join('');
+  host.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"
+      aria-label="Loom-day utilisation by year against the ceiling. ${M.years.map(r=>`Year ${r.year} ${pct(r.util)}`).join(', ')}.">
+    ${g}
+    <line class="ref" x1="${L}" y1="${yv(1)}" x2="${L+iw}" y2="${yv(1)}"/>
+    <text x="${L+iw}" y="${yv(1)-4}" text-anchor="end" fill="var(--bad)" class="vlab">ceiling — 100%</text>
+    ${bars}
+    <line class="axis" x1="${L}" y1="${T+ih}" x2="${L+iw}" y2="${T+ih}"/>
+    ${M.years.map((r,i)=>`<text x="${L+i*bw+bw/2}" y="${T+ih+14}" text-anchor="middle">Yr ${r.year}</text>`).join('')}
+  </svg>`;
+  wireTips(host);
+}
+function chartWaterfall(){
+  const host = document.getElementById('chartWaterfall');
+  const steps = [
+    { n:'Revenue',      v:M.melRevenue,   kind:'total' },
+    { n:'COGS',         v:-M.melCOGS,     kind:'down'  },
+    { n:'Gross profit', v:M.melGP,        kind:'sub'   },
+    { n:'Operating',    v:-S.opSpend,     kind:'down'  },
+    { n:'Amortisation', v:-M.amort,       kind:'down'  },
+    { n:'Contingency',  v:-S.contingency, kind:'down'  },
+    { n:'Op. profit',   v:M.opProfit,     kind:'total' }
+  ];
+  const W = 640, H = 240, L = 52, R = 12, T = 22, B = 44;
+  const iw = W-L-R, ih = H-T-B;
+  let run = 0; const bars = [];
+  steps.forEach(st=>{
+    if (st.kind === 'total' || st.kind === 'sub'){ bars.push({...st, from:0, to:st.v}); run = st.v; }
+    else { bars.push({...st, from:run, to:run + st.v}); run += st.v; }
+  });
+  const max = Math.max(...bars.map(b=>Math.max(b.from,b.to))) * 1.06 || 1;
+  const yv = v => T + ih - (v/max)*ih;
+  const bw = iw/steps.length;
+  let g = '';
+  [0,0.25,0.5,0.75,1].forEach(f=>{
+    const v = max*f;
+    g += `<line class="grid" x1="${L}" y1="${yv(v)}" x2="${L+iw}" y2="${yv(v)}"/>`
+       + `<text x="${L-6}" y="${yv(v)+3}" text-anchor="end">${money(v)}</text>`;
+  });
+  const body = bars.map((b,i)=>{
+    const top = Math.min(b.from,b.to), bot = Math.max(b.from,b.to);
+    const h = Math.max(2, yv(top) - yv(bot));
+    const bx = L + i*bw + bw*0.2, w2 = bw*0.6;
+    const fill = b.kind==='down' ? 'var(--s-ph)' : b.kind==='sub' ? 'var(--s-mel)' : 'var(--s-free)';
+    const link = i>0 ? `<line x1="${bx-bw*0.2}" y1="${yv(bars[i-1].to)}" x2="${bx}" y2="${yv(bars[i-1].to)}" stroke="var(--line-strong)" stroke-width="1" stroke-dasharray="2 2"/>` : '';
+    return link + `<rect x="${bx}" y="${yv(bot)}" width="${w2}" height="${h}" rx="4" fill="${fill}"
+        data-tip="${esc(`<strong>${b.n}</strong><br>${fmt(b.v,'signed')}<br>running total ${money(b.to)}`)}"/>`
+      + `<text class="vlab" x="${bx+w2/2}" y="${yv(bot)-5}" text-anchor="middle">${money(Math.abs(b.v))}</text>`;
+  }).join('');
+  host.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"
+      aria-label="Year-one Melbourne waterfall from revenue ${money(M.melRevenue)} to operating profit ${money(M.opProfit)}.">
+    ${g}${body}
+    <line class="axis" x1="${L}" y1="${T+ih}" x2="${L+iw}" y2="${T+ih}"/>
+    ${steps.map((st,i)=>`<text x="${L+i*bw+bw/2}" y="${T+ih+15}" text-anchor="middle">${st.n.split(' ')[0]}</text>`
+      + `<text x="${L+i*bw+bw/2}" y="${T+ih+26}" text-anchor="middle">${st.n.split(' ')[1]||''}</text>`).join('')}
+  </svg>`;
+  wireTips(host);
+}
+function chartSens(){
+  const host = document.getElementById('chartSens');
+  const W = 460, H = 220, L = 52, R = 14, T = 20, B = 40;
+  const iw = W-L-R, ih = H-T-B;
+  const vals = M.sens.map(x=>x.op);
+  const hi = Math.max(0, ...vals) * 1.15 || 1, lo = Math.min(0, ...vals) * 1.15;
+  const span = (hi - lo) || 1;
+  const yv = v => T + ih - ((v - lo)/span)*ih;
+  const bw = iw/M.sens.length;
+  const bars = M.sens.map((x,i)=>{
+    const z = yv(0), yy = yv(x.op);
+    const bx = L + i*bw + bw*0.24, w2 = bw*0.52;
+    const top = Math.min(z,yy), h = Math.max(2, Math.abs(z-yy));
+    return `<rect x="${bx}" y="${top}" width="${w2}" height="${h}" rx="4"
+              fill="${x.op>=0 ? 'var(--s-free)' : 'var(--crimson)'}"
+              data-tip="${esc(`<strong>${x.rate}% sell-through</strong><br>${grp(x.units)} units<br>revenue ${money(x.rev)}<br>gross profit ${money(x.gp)}<br>operating profit ${fmt(x.op,'signed')}`)}"/>`
+         + `<text class="vlab" x="${bx+w2/2}" y="${(x.op>=0?top-5:top+h+12)}" text-anchor="middle">${fmt(x.op,'signed')}</text>`;
+  }).join('');
+  host.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img"
+      aria-label="Operating profit at ${M.sens.map(x=>x.rate+'% sell-through '+fmt(x.op,'signed')).join(', ')}. Zero line marked.">
+    ${bars}
+    <line class="axis" x1="${L}" y1="${yv(0)}" x2="${L+iw}" y2="${yv(0)}"/>
+    <text x="${L-6}" y="${yv(0)+3}" text-anchor="end">₱0</text>
+    ${M.sens.map((x,i)=>`<text x="${L+i*bw+bw/2}" y="${T+ih+20}" text-anchor="middle">${x.rate}%${x.isBase?' (base)':''}</text>`).join('')}
+  </svg>`;
+  wireTips(host);
+}
+
+/* =======================================================================
+   9 · TRACE PANEL + DEPENDENCY VIEW
+   ======================================================================= */
+let openTrace = null;
+function showTrace(id){
+  const t = TR[id]; if (!t) return;
+  openTrace = id;
+  document.getElementById('tTitle').textContent = t.title;
+  document.getElementById('tValue').textContent = fmt(t.v, t.type);
+  document.getElementById('tValue').className = 'mt-3 text-2xl font-bold ' + (t.type==='signed' ? (t.v>=0?'pos':'neg') : '');
+  document.getElementById('tFormula').textContent = t.f;
+  document.getElementById('tSubst').textContent = t.sub + (t.note ? '\n\n' + t.note : '');
+  const deps = (t.deps||[]).filter(k=>INBY[k]);
+  document.getElementById('tInputs').innerHTML = deps.length ? deps.map(k=>{
+    const i = INBY[k]; const changed = S[k] !== DEFAULTS[k];
+    return `<div class="text-[11.5px] p-1.5 rounded" style="border:1px solid var(--line)">
+      <div class="flex items-center justify-between gap-2">
+        <span class="font-medium">${i.label}</span>${tagHTML(i.tag)}</div>
+      <div style="color:var(--muted)">now <strong style="color:var(--text)">${grp(S[k], S[k]%1?1:0)}${i.unit||''}</strong>${changed?` (base ${grp(DEFAULTS[k], DEFAULTS[k]%1?1:0)}${i.unit||''})`:''} · ${i.src}</div>
+    </div>`;
+  }).join('') : `<div class="text-[11.5px]" style="color:var(--muted)">This is itself a direct input.</div>`;
+  document.getElementById('tDep').dataset.keys = deps.join(',');
+  const feeds = (t.feeds||[]).filter(f=>TR[f]);
+  document.getElementById('tFeeds').innerHTML = feeds.length
+    ? feeds.map(f=>`<button class="btn !py-0.5 !text-[11px]" data-goto="${f}">${TR[f].title} →</button>`).join('')
+    : `<span class="text-[11.5px]" style="color:var(--muted)">Nothing downstream — this is a headline figure.</span>`;
+  document.getElementById('tracePanel').classList.add('open');
+}
+function closeTrace(){ openTrace = null; document.getElementById('tracePanel').classList.remove('open'); clearDeps(); }
+function markDeps(keys){
+  clearDeps();
+  const set = new Set(keys);
+  document.querySelectorAll('[data-id]').forEach(el=>{
+    const t = TR[el.dataset.id]; if (!t) return;
+    if ((t.deps||[]).some(k=>set.has(k))) el.classList.add('dep-hit');
+  });
+}
+function clearDeps(){ document.querySelectorAll('.dep-hit').forEach(el=>el.classList.remove('dep-hit')); }
+
+document.addEventListener('click', e=>{
+  const met = e.target.closest('.metric');
+  if (met){ showTrace(met.dataset.id); return; }
+  const go = e.target.closest('[data-goto]');
+  if (go){ showTrace(go.dataset.goto); return; }
+});
+document.addEventListener('keydown', e=>{
+  if (e.key === 'Escape'){
+    if (!document.getElementById('tour').hidden){ closeTour(); return; }
+    closeTrace(); document.getElementById('diffModal').classList.add('hidden');
+  }
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('metric')){
+    e.preventDefault(); showTrace(e.target.dataset.id);
+  }
+});
+document.getElementById('tClose').addEventListener('click', closeTrace);
+document.getElementById('tDep').addEventListener('click', e=>{
+  const keys = (e.currentTarget.dataset.keys||'').split(',').filter(Boolean);
+  markDeps(keys);
+});
+
+/* =======================================================================
+   10 · PRESETS, MODIFIED BADGE, DIFF, EXPORT, TOGGLES
+   ======================================================================= */
+function applyState(next){ S = next; syncAllInputs(); render(); }
+document.querySelectorAll('.preset').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    applyState(PRESETS[b.dataset.preset]());
+    document.querySelectorAll('.preset').forEach(x=>x.classList.remove('btn-on'));
+    b.classList.add('btn-on');
+  });
+});
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  applyState(Object.assign({}, DEFAULTS));
+  document.querySelectorAll('.preset').forEach(x=>x.classList.remove('btn-on'));
+});
+function diffList(){
+  return Object.keys(DEFAULTS).filter(k => S[k] !== DEFAULTS[k]);
+}
+function updateModBadge(){
+  const d = diffList();
+  const badge = document.getElementById('modBadge');
+  if (!d.length){ badge.classList.add('hidden'); return; }
+  badge.classList.remove('hidden');
+  document.getElementById('modText').textContent =
+    `Modified from base — ${d.length} input${d.length>1?'s':''} changed`;
+}
+document.getElementById('diffBtn').addEventListener('click', ()=>{
+  const d = diffList();
+  document.getElementById('diffBody').innerHTML = d.length ? d.map(k=>{
+    const i = INBY[k] || {label:k, unit:''};
+    return `<div class="flex justify-between gap-3" style="border-bottom:1px solid var(--line); padding-bottom:4px">
+      <span>${i.label}</span>
+      <span><span style="color:var(--muted)">${grp(DEFAULTS[k], DEFAULTS[k]%1?1:0)}${i.unit||''}</span>
+      → <strong>${grp(S[k], S[k]%1?1:0)}${i.unit||''}</strong></span></div>`;
+  }).join('') : '<div style="color:var(--muted)">Nothing changed — this is the deck’s base case.</div>';
+  document.getElementById('diffModal').classList.remove('hidden');
+});
+document.getElementById('diffClose').addEventListener('click', ()=>document.getElementById('diffModal').classList.add('hidden'));
+document.getElementById('diffModal').addEventListener('click', e=>{ if (e.target.id==='diffModal') e.currentTarget.classList.add('hidden'); });
+
+document.getElementById('curBtn').addEventListener('click', e=>{
+  AUD = (AUD + 1) % 3;
+  e.currentTarget.classList.toggle('btn-on', AUD !== 0);
+  e.currentTarget.textContent = ['₱ / A$ / US$', 'A$ — showing', 'US$ — showing'][AUD];
+  e.currentTarget.title = AUD === 0 ? 'Showing pesos — click for Australian dollars'
+    : AUD === 1 ? `Converted at A$1 = ₱${S.fxAud} — click for US dollars`
+                : `Converted at US$1 = ₱${S.fxUsd} — click to return to pesos`;
+  Object.keys(prev).forEach(k=>delete prev[k]);
+  render();
+});
+document.getElementById('themeBtn').addEventListener('click', ()=>document.documentElement.classList.toggle('light'));
+
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const out = { generated:'kandama-melbourne-model', scenario:diffList().length?'modified':'base case',
+    inputs:S, outputs:{} };
+  Object.keys(TR).forEach(id=>{ if (id!=='_BM') out.outputs[id] = { label:TR[id].title, value:TR[id].v, formula:TR[id].f, substituted:TR[id].sub }; });
+  const rows = [['section','item','value']];
+  ALL_IN.forEach(i=>rows.push(['input', i.label + ' ['+TAGNAME[i.tag]+']', S[i.k]]));
+  Object.keys(out.outputs).forEach(id=>rows.push(['output', out.outputs[id].label, out.outputs[id].value]));
+  const csv = rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  dl('kandama-scenario.json', JSON.stringify(out,null,2), 'application/json');
+  dl('kandama-scenario.csv', csv, 'text/csv');
+});
+function dl(name, text, mime){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type:mime}));
+  a.download = name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href), 2000);
+}
+
+// drawer
+const drawer = document.getElementById('inputs'), scrim = document.getElementById('scrim');
+function setDrawer(o){ drawer.classList.toggle('open',o); scrim.classList.toggle('open',o);
+  ['drawerBtn','fab'].forEach(id=>document.getElementById(id).setAttribute('aria-expanded', String(o)));
+  document.getElementById('fab').style.visibility = o ? 'hidden' : '';
+  // always open on the panel header, so "Change our assumptions" is what's seen first
+  if (o) drawer.scrollTop = 0; }
+document.getElementById('drawerBtn').addEventListener('click', ()=>setDrawer(!drawer.classList.contains('open')));
+document.getElementById('closeDrawer').addEventListener('click', ()=>setDrawer(false));
+scrim.addEventListener('click', ()=>setDrawer(false));
+
+// debounced recalc
+let timer = null;
+function schedule(){ clearTimeout(timer); timer = setTimeout(render, 50); }
+
+/* ---- shareable scenario link -------------------------------------------
+   State travels in the URL hash, so no storage API is involved. Only inputs
+   that differ from base are encoded, which keeps links short. Incoming values
+   are untrusted, so every key is checked against the registry and clamped to
+   its own range before it reaches the model. */
+function encodeScenario(){
+  const d = {};
+  Object.keys(DEFAULTS).forEach(k=>{ if (S[k] !== DEFAULTS[k]) d[k] = S[k]; });
+  if (!Object.keys(d).length) return '';
+  return 's=' + btoa(JSON.stringify(d)).replace(/=+$/,'');
+}
+function applyScenarioFromHash(){
+  const h = location.hash.replace(/^#/,'');
+  if (!h.startsWith('s=')) return false;
+  let obj;
+  try { obj = JSON.parse(atob(h.slice(2))); } catch (e){ return false; }
+  if (!obj || typeof obj !== 'object') return false;
+  let n = 0;
+  Object.keys(obj).forEach(k=>{
+    if (!(k in DEFAULTS)) return;                 // unknown key → ignored
+    const v = Number(obj[k]);
+    if (!isFinite(v)) return;
+    const i = INBY[k];
+    S[k] = i ? Math.max(i.min, Math.min(i.max, v)) : v;
+    n++;
+  });
+  return n > 0;
+}
+document.getElementById('shareBtn').addEventListener('click', async e=>{
+  const q = encodeScenario();
+  const url = location.origin + location.pathname + location.search + (q ? '#' + q : '');
+  location.hash = q;
+  const btn = e.currentTarget, was = btn.textContent;
+  let ok = false;
+  try { await navigator.clipboard.writeText(url); ok = true; } catch (err){ ok = false; }
+  btn.textContent = ok ? '✓ Link copied' : '🔗 Link in address bar';
+  setTimeout(()=>{ btn.textContent = was; }, 2200);
+});
+
+/* ---- robustness controls ------------------------------------------------ */
+document.getElementById('mcRun').addEventListener('click', runMC);
+document.getElementById('tMetric').addEventListener('change', renderTornado);
+document.getElementById('tSpread').addEventListener('input', renderTornado);
+
+// re-render on resize/orientation change: bar labels and chart layout are
+// width-dependent, so a rotated phone must recompute rather than keep a stale fit
+let rTimer = null;
+window.addEventListener('resize', ()=>{ clearTimeout(rTimer); rTimer = setTimeout(render, 120); });
+
+/* =======================================================================
+   10b · ONBOARDING — judges arrive cold, so orient them in four lines.
+   No storage APIs are available (and none are wanted: each judge opens this
+   fresh from the QR code, so a fresh open SHOULD get the tour). The opt-out
+   below therefore lasts for this page view only, and "? How to use" in the
+   header reopens it at any time.
+   ======================================================================= */
+const tour = document.getElementById('tour');
+let tourSuppressed = false, lastFocus = null;
+
+function openTour(){
+  lastFocus = document.activeElement;
+  tour.hidden = false;
+  document.body.style.overflow = 'hidden';
+  document.getElementById('tourGo').focus();
+}
+function closeTour(){
+  tour.hidden = true;
+  document.body.style.overflow = '';
+  if (document.getElementById('tourOff').checked) tourSuppressed = true;
+  if (lastFocus && lastFocus.focus) lastFocus.focus();
+  // point at the control panel once, so its existence registers immediately
+  if (window.matchMedia('(max-width:1023px)').matches){
+    ['fab','drawerBtn'].forEach(id=>{
+      const el = document.getElementById(id);
+      el.classList.add('nudge');
+      el.addEventListener('animationend', ()=>el.classList.remove('nudge'), {once:true});
+    });
+  }
+}
+document.getElementById('tourGo').addEventListener('click', closeTour);
+document.getElementById('tourX').addEventListener('click', closeTour);
+document.getElementById('helpBtn').addEventListener('click', openTour);
+tour.addEventListener('click', e=>{ if (e.target === tour) closeTour(); });
+
+// "Show me the capacity limit" — drive the breach live rather than describe it
+document.getElementById('tourBreak').addEventListener('click', ()=>{
+  closeTour(); demoBreach();
+});
+function demoBreach(){
+  S.mel_capsule = Math.min(INBY.mel_capsule.max, 620);
+  syncPair('mel_capsule'); render();
+  document.getElementById('breachBanner').scrollIntoView({block:'center', behavior:reduce?'auto':'smooth'});
+}
+document.getElementById('demoBreach').addEventListener('click', demoBreach);
+
+// "Show me an example" — open the working for the headline figure
+document.getElementById('demoTrace').addEventListener('click', ()=>{
+  showTrace('opProfit');
+});
+
+// floating control-panel button (small screens)
+document.getElementById('fab').addEventListener('click', ()=>setDrawer(true));
+
+/* =======================================================================
+   11 · ACCEPTANCE CHECKS — run the brief's own numbers against the engine
+   ======================================================================= */
+document.getElementById('testBtn').addEventListener('click', ()=>{
+  const m = compute(Object.assign({}, DEFAULTS));
+  const near = (a,b,tol)=>Math.abs(a-b) <= (tol===undefined?0.5:tol);
+  const checks = [
+    ['capacity ceiling 3,190', near(m.ceiling,3190,0)],
+    ['Melbourne 260 units', near(m.melUnits,260,0)],
+    ['Melbourne 1,324 loom-days', near(m.melLoomDays,1324,0)],
+    ['Melbourne revenue ₱6,472,200', near(m.melRevenue,6472200,1)],
+    ['Melbourne GP ₱4,214,200', near(m.melGP,4214200,1)],
+    ['Melbourne GM 65.1%', near(m.melGM*100,65.1,0.05)],
+    ['domestic 344 units', near(m.phUnits,344,0)],
+    ['domestic 1,492 loom-days consumed', near(m.phLoomDays,1492,0)],
+    ['domestic revenue ₱7,576,200', near(m.phRevenue,7576200,1)],
+    ['domestic GP ₱4,868,200', near(m.phGP,4868200,1)],
+    ['domestic GM 64.3%', near(m.phGM*100,64.3,0.05)],
+    ['utilisation 88.3%', near(m.util*100,88.3,0.05)],
+    ['headroom 374 loom-days', near(m.headroom,374,0)],
+    ['operating profit ₱2,140,867', near(m.opProfit,2140866.67,1)],
+    ['programme ₱2,900,000', near(m.programme,2900000,0)],
+    ['facility ₱4,100,000', near(m.facility,4100000,0)],
+    ['reconciliation gap ₱826,667', near(m.reconGap,826666.67,1)],
+    ['CAC ₱2,423', near(m.cac,2423.08,1)],
+    ['GP per unit ₱16,208', near(m.gpUnit,16208.46,1)],
+    ['GP:CAC 6.7×', near(m.ratio,6.7,0.05)],
+    ['weaver income ₱63,117', near(m.perWeaver,63117.24,1)],
+    ['97 of 110 days', near(Math.round(m.daysWorked),97,0) && m.daysAvail===110],
+    ['company revenue ₱14.05M', near(m.companyRevenue/1e6,14.05,0.005)],
+    ['break-even sell-through below 60%', m.breakeven < 0.60]
+  ];
+  // ---- derivation-doc tables, section by section
+  const M2 = v => +(Math.round(v/1e4)/100).toFixed(2);
+  checks.push(['tier margins 62.3 / 67.4 / 73.9%',
+    near(((m.price.capsule-m.cogs.capsule)/m.price.capsule)*100,62.3,0.05) &&
+    near(((m.price.signature-m.cogs.signature)/m.price.signature)*100,67.4,0.05) &&
+    near(((m.price.masterpiece-m.cogs.masterpiece)/m.price.masterpiece)*100,73.9,0.05)]);
+  checks.push(['prices ₱17,250 / ₱55,200 / ₱172,500',
+    m.price.capsule===17250 && m.price.signature===55200 && m.price.masterpiece===172500]);
+  checks.push(['Melbourne 41.5% of the ceiling', near(m.melCapShare*100,41.5,0.05)]);
+  checks.push(['buffer targeted 366, actually spare 374', m.bufferTarget===366 && m.headroom===374]);
+  checks.push(['headroom 11.7% of the ceiling', near(m.headroomShare*100,11.7,0.05)]);
+  checks.push(['domestic 53.9% of company revenue, Melbourne 46.1%',
+    near(m.phShare*100,53.9,0.05) && near(m.melShare*100,46.1,0.05)]);
+  checks.push(['company COGS ₱4.97M, GP ₱9.08M at 64.7%',
+    M2(m.companyCOGS)===4.97 && M2(m.companyGP)===9.08 && near(m.companyGM*100,64.7,0.05)]);
+  checks.push(['weaver rate 35% above the CAR agricultural minimum', near((650/480-1)*100,35.4,0.5)]);
+  checks.push(['90-day gate 176 of 220 Capsule', m.gateUnits===176]);
+  // five-year table, row by row against the doc
+  const DOC = [
+    { y:1, w:29, ceil:3190, mu:260, mr:6.47, ml:1324, pu:344, pr:7.58, pl:1492, used:2816, util:88.3, op:2.14, cr:14.05, ps:53.9 },
+    { y:2, w:29, ceil:3190, mu:301, mr:7.56, ml:1544, pu:361, pr:8.06, pl:1575, used:3119, util:97.8, op:2.65, cr:15.63, ps:51.6 },
+    { y:3, w:45, ceil:4950, mu:460, mr:11.45, ml:2345, pu:379, pr:8.45, pl:1655, used:4000, util:80.8, op:4.35, cr:19.90, ps:42.5 },
+    { y:4, w:55, ceil:6050, mu:561, mr:14.03, ml:2868, pu:398, pr:8.85, pl:1738, used:4606, util:76.1, op:5.47, cr:22.89, ps:38.7 },
+    { y:5, w:65, ceil:7150, mu:650, mr:16.18, ml:3310, pu:418, pr:9.27, pl:1824, used:5134, util:71.8, op:6.47, cr:25.45, ps:36.4 }
+  ];
+  DOC.forEach(d=>{
+    const r = m.years[d.y-1];
+    const ok = r.weavers===d.w && r.ceiling===d.ceil && r.melUnits===d.mu && M2(r.melRevenue)===d.mr
+      && r.melLoomDays===d.ml && r.phUnits===d.pu && M2(r.phRevenue)===d.pr && r.phLoomDays===d.pl
+      && r.used===d.used && near(r.util*100,d.util,0.05) && M2(r.melOpProfit)===d.op
+      && M2(r.companyRev)===d.cr && near(r.phShare*100,d.ps,0.05);
+    checks.push([`Year ${d.y} row: ${d.w}w · ${d.ceil} ceiling · ${d.mu}u ₱${d.mr}M / ${d.pu}u ₱${d.pr}M · ${d.ml}+${d.pl}=${d.used} · ${d.util}% · op ₱${d.op}M · company ₱${d.cr}M · PH ${d.ps}%`, ok]);
+  });
+  checks.push(['Year 2 flags as tight, not breached', m.years[1].state==='tight']);
+  checks.push(['Year 2 is the binding year', m.bindingYear.year===2]);
+  checks.push(['cumulative Melbourne ₱55.70M', M2(m.cum.melRevenue)===55.70]);
+  checks.push(['cumulative domestic ₱42.21M', M2(m.cum.phRevenue)===42.21]);
+  checks.push(['cumulative company ₱97.91M', M2(m.cum.companyRevenue)===97.91]);
+  checks.push(['cumulative company GP ₱63.45M at 64.8%',
+    M2(m.cum.companyGP)===63.45 && near(m.cum.companyGM*100,64.8,0.05)]);
+  checks.push(['cumulative Melbourne op profit ₱21.08M = 7.3× the ask',
+    M2(m.cum.melOpProfit)===21.08 && near(m.cum.multiple,7.3,0.05)]);
+  checks.push(['sensitivity 195 / 260 / 309 units',
+    m.sens[0].units===195 && m.sens[1].units===260 && m.sens[2].units===309]);
+  checks.push(['sensitivity revenue ₱4.85M / ₱6.47M / ₱7.74M',
+    M2(m.sens[0].rev)===4.85 && M2(m.sens[1].rev)===6.47 && M2(m.sens[2].rev)===7.74]);
+  checks.push(['sensitivity GP ₱3.16M / ₱4.21M / ₱5.04M',
+    M2(m.sens[0].gp)===3.16 && M2(m.sens[1].gp)===4.21 && M2(m.sens[2].gp)===5.04]);
+  checks.push(['sensitivity op profit +₱1.09M / +₱2.14M / +₱2.97M',
+    M2(m.sens[0].op)===1.09 && M2(m.sens[1].op)===2.14 && M2(m.sens[2].op)===2.97]);
+  checks.push(['bear case still clears zero', m.sens[0].op > 0]);
+  // the 0%-markup "old" column from section 5 of the derivation doc
+  const old = compute(Object.assign({}, DEFAULTS, {markup:0}));
+  checks.push(['at 0% markup: revenue ₱5.63M, GP ₱3.37M at 59.9%, op +₱1.30M',
+    M2(old.melRevenue)===5.63 && M2(old.melGP)===3.37 && near(old.melGM*100,59.9,0.05) && M2(old.opProfit)===1.30]);
+  // The derivation doc's "old" column states GP/unit ₱12,966 → 5.4×. The exact
+  // arithmetic is 3,370,000 ÷ 260 = ₱12,961.54 → 5.3×. The doc is 4 pesos out, and
+  // that is just enough to flip the rounded ratio. The model asserts the true value.
+  checks.push(['at 0% markup: GP per unit ₱12,962 → GP:CAC 5.3× (doc says ₱12,966 → 5.4×)',
+    near(old.gpUnit,12961.54,1) && near(old.ratio,5.35,0.01)]);
+  checks.push(['13.3% markup rounds Capsule to ₱17,000',
+    compute(Object.assign({}, DEFAULTS, {markup:13.3})).price.capsule===17000]);
+
+  // ---- payback
+  checks.push(['programme pays back during Year 2', m.paybackYear===2 && m.payback>1 && m.payback<2]);
+  checks.push(['cumulative op profit passes the ask between Y1 and Y2',
+    m.cumOpByYear[0] < m.programme && m.cumOpByYear[1] >= m.programme]);
+  // ---- breach resolver arithmetic
+  const br = compute(Object.assign({}, DEFAULTS, {mel_capsule:620}));
+  checks.push(['breach resolver: cutting its Capsule figure clears the breach',
+    br.fix !== null && compute(Object.assign({}, DEFAULTS,
+      {mel_capsule:620 - br.fix.capsuleOnly})).state !== 'breach']);
+  checks.push(['breach resolver: adding its weaver count clears the breach',
+    compute(Object.assign({}, DEFAULTS,
+      {mel_capsule:620, weavers:29 + br.fix.weaversNeeded})).state !== 'breach']);
+  checks.push(['breach resolver: proportional unit cut clears the breach',
+    (()=>{ const f=br.fix; return compute(Object.assign({}, DEFAULTS, {mel_capsule:620,
+      mel_capsule:620 - f.cutUnits.capsule, mel_signature:36 - f.cutUnits.signature,
+      mel_masterpiece:4 - f.cutUnits.masterpiece})).state !== 'breach'; })()]);
+  checks.push(['no resolver shown when inside capacity', m.fix === null]);
+  // ---- tornado
+  const tOld = M; M = m;
+  const tn = tornado('opProfit', 20);
+  checks.push(['tornado ranks loom-days per garment or units top for operating profit',
+    tn.rows.length > 3 && /loom-days|units|COGS|price/i.test(tn.rows[0].label)]);
+  checks.push(['tornado excludes inputs with no effect',
+    !tn.rows.some(r=>r.k==='looms' || r.k==='fxAud' || r.k==='fxUsd')]);
+  // The ceiling is weavers × loom-days per weaver, so at equal proportional flex the
+  // two terms must dominate utilisation together — and near-equally. (Weavers edges
+  // ahead only because 29 × 0.8 rounds to 23, a 20.7% cut rather than 20%.)
+  const tnUtil = tornado('util', 20);
+  const topTwo = tnUtil.rows.slice(0,2).map(r=>r.k).sort().join(',');
+  checks.push(['utilisation is driven above all by the two ceiling terms',
+    topTwo === 'loomDaysPerWeaver,weavers']);
+  checks.push(['those two matter near-equally (within 2pp of swing)',
+    Math.abs(tnUtil.rows[0].swing - tnUtil.rows[1].swing) < 0.02]);
+  checks.push(['loom-days per weaver is the top ESTIMATE-tagged driver of utilisation',
+    tnUtil.rows.filter(r=>r.tag==='E')[0].k === 'loomDaysPerWeaver']);
+  // ---- two-way grid
+  const gr = twoWayGrid();
+  checks.push(['grid is 7×7 and marks the current assumptions',
+    gr.cells.length===7 && gr.cells[0].length===7 && gr.cells.flat().filter(c=>c.isBase).length===1]);
+  checks.push(['grid base cell equals the Year-1 operating profit',
+    Math.abs(gr.cells.flat().find(c=>c.isBase).op - m.opProfit) < 1]);
+  checks.push(['grid flags low loom-days per weaver as undeliverable',
+    gr.cells[0][gr.rateAxis.indexOf(80)].breach === true]);
+  // ---- Monte Carlo
+  const mc1 = monteCarlo(), mc2 = monteCarlo();
+  checks.push(['Monte Carlo is reproducible (seeded RNG)',
+    mc1.p50 === mc2.p50 && mc1.pProfit === mc2.pProfit]);
+  checks.push(['Monte Carlo brackets the base case: P10 ≤ P50 ≤ P90',
+    mc1.p10 <= mc1.p50 && mc1.p50 <= mc1.p90]);
+  checks.push(['Monte Carlo samples only estimate-tagged inputs',
+    mc1.sampled.every(k=>INBY[k] && INBY[k].tag==='E')]);
+  M = tOld;
+  // ---- share link round-trip
+  const savedS = S;
+  S = Object.assign({}, DEFAULTS, {weavers:41, markup:7, phAlloc:900});
+  const enc = encodeScenario();
+  S = Object.assign({}, DEFAULTS);
+  const oldHash = location.hash;
+  location.hash = enc;
+  const applied = applyScenarioFromHash();
+  checks.push(['share link round-trips only the changed inputs',
+    applied && S.weavers===41 && S.markup===7 && S.phAlloc===900 && S.weaverRate===650]);
+  location.hash = '';
+  S = Object.assign({}, DEFAULTS);
+  location.hash = 's=' + btoa(JSON.stringify({weavers:99999, nonsense:1, markup:'abc'}));
+  applyScenarioFromHash();
+  checks.push(['share link clamps out-of-range values and ignores junk keys',
+    S.weavers === INBY.weavers.max && !('nonsense' in S) && S.markup === DEFAULTS.markup]);
+  location.hash = oldHash;
+  S = savedS;
+
+  // breach behaviour
+  const breach = compute(Object.assign({}, DEFAULTS, {mel_capsule:800}));
+  checks.push(['800 Capsule units triggers a breach', breach.state==='breach']);
+  const nomk = compute(Object.assign({}, DEFAULTS, {markup:0}));
+  checks.push(['0% markup drops price to ₱15,000 and margin falls',
+    nomk.price.capsule===15000 && nomk.melGM < m.melGM]);
+  const out = document.getElementById('testOut');
+  const fails = checks.filter(c=>!c[1]).length;
+  out.innerHTML = `<div class="font-bold ${fails?'neg':'pos'}">${checks.length-fails}/${checks.length} passing${fails?' — '+fails+' FAILING':''}</div>`
+    + checks.map(c=>`<div class="${c[1]?'pos':'neg'}">${c[1]?'✓':'✕'} ${c[0]}</div>`).join('');
+});
+
+/* =======================================================================
+   12 · BOOT
+   ======================================================================= */
+const fromLink = applyScenarioFromHash();   // a shared link wins over the defaults
+buildInputs();
+render();
+document.getElementById('testBtn').click();
+if (fromLink){
+  // arriving on someone else's scenario: say so rather than passing it off as ours
+  const b = document.getElementById('modBadge');
+  b.classList.remove('hidden');
+  document.getElementById('modText').textContent =
+    `Opened from a shared link — ${diffList().length} input${diffList().length===1?'':'s'} differ from our base case`;
+} else if (!tourSuppressed) openTour();   // judges arrive cold — orient first
+</script>
+</body>
+</html>
