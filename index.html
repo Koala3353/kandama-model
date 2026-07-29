@@ -2837,9 +2837,33 @@ function applyScenarioFromHash(){
   });
   return n > 0;
 }
+function showLinkBadge(){
+  const n = diffList().length;
+  const b = document.getElementById('modBadge');
+  b.classList.remove('hidden');
+  document.getElementById('modText').textContent =
+    `Opened from a shared link — ${n} input${n===1?'':'s'} differ from our base case`;
+}
+/* Applying the hash at boot is not enough: pasting a link while already on the
+   page, or using back/forward, is a same-document navigation that never re-runs
+   the boot code. Without this the link silently does nothing. */
+let selfHashUpdate = false;
+window.addEventListener('hashchange', ()=>{
+  if (selfHashUpdate){ selfHashUpdate = false; return; }   // our own Copy-link write
+  if (!location.hash.replace(/^#/,'').startsWith('s=')) return;
+  S = Object.assign({}, DEFAULTS);        // start clean so omitted keys revert to base
+  if (applyScenarioFromHash()){
+    MC = null; mcStamp = null;
+    syncAllInputs(); render(); showLinkBadge();
+    document.querySelectorAll('.preset').forEach(x=>x.classList.remove('btn-on'));
+    if (!tour.hidden) closeTour();
+  }
+});
+
 document.getElementById('shareBtn').addEventListener('click', async e=>{
   const q = encodeScenario();
   const url = location.origin + location.pathname + location.search + (q ? '#' + q : '');
+  if (('#' + q) !== location.hash) selfHashUpdate = true;
   location.hash = q;
   const btn = e.currentTarget, was = btn.textContent;
   let ok = false;
@@ -3075,6 +3099,14 @@ document.getElementById('testBtn').addEventListener('click', ()=>{
   applyScenarioFromHash();
   checks.push(['share link clamps out-of-range values and ignores junk keys',
     S.weavers === INBY.weavers.max && !('nonsense' in S) && S.markup === DEFAULTS.markup]);
+  // A link must fully replace the reader's state, not merge into it: inputs the
+  // link omits have to fall back to base, or they'd silently inherit stray edits.
+  S = Object.assign({}, DEFAULTS, {weaverRate:1100, looms:33});
+  location.hash = 's=' + btoa(JSON.stringify({weavers:41}));
+  S = Object.assign({}, DEFAULTS);       // the reset the hashchange handler performs
+  applyScenarioFromHash();
+  checks.push(['a shared link replaces state rather than merging into it',
+    S.weavers === 41 && S.weaverRate === DEFAULTS.weaverRate && S.looms === DEFAULTS.looms]);
   location.hash = oldHash;
   S = savedS;
 
@@ -3099,10 +3131,7 @@ render();
 document.getElementById('testBtn').click();
 if (fromLink){
   // arriving on someone else's scenario: say so rather than passing it off as ours
-  const b = document.getElementById('modBadge');
-  b.classList.remove('hidden');
-  document.getElementById('modText').textContent =
-    `Opened from a shared link — ${diffList().length} input${diffList().length===1?'':'s'} differ from our base case`;
+  showLinkBadge();
 } else if (!tourSuppressed) openTour();   // judges arrive cold — orient first
 </script>
 </body>
